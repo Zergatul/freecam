@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8.2",
+  "package": "com.zergatul.freecam.mixins",
+  "refmap": "cheatutils.mixin-refmap.json",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "MixinCamera",
+    "MixinClientboundPlayerInfoPacket",
+    "MixinClientPacketListener"
+  ]
+}

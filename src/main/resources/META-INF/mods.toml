@@ -1,0 +1,46 @@
+modLoader="javafml" #mandatory
+loaderVersion="[40,)" #mandatory
+license="All rights reserved"
+issueTrackerURL="https://github.com/zergatul/freecam" #optional
+[[mods]] #mandatory
+modId="freecam" #mandatory
+# The version number of the mod - there's a few well known ${} variables useable here or just hardcode it
+# ${file.jarVersion} will substitute the value of the Implementation-Version as read from the mod's JAR file metadata
+# see the associated build.gradle script for how to populate this completely automatically during a build
+version="${file.jarVersion}" #mandatory
+ # A display name for the mod
+displayName="FreeCam by Zergatul" #mandatory
+# A URL to query for updates for this mod. See the JSON update specification https://mcforge.readthedocs.io/en/latest/gettingstarted/autoupdate/
+#updateJSONURL="https://change.me.example.invalid/updates.json" #optional
+# A URL for the "homepage" for this mod, displayed in the mod UI
+#displayURL="https://change.me.to.your.mods.homepage.example.invalid/" #optional
+# A file name (in the root of the mod JAR) containing a logo for display
+#logoFile="examplemod.png" #optional
+#credits="Thanks for this example mod goes to Java" #optional
+# A text field displayed in the mod UI
+authors="Zergatul" #optional
+# The description text for the mod (multi line!) (#mandatory)
+description='''
+Mod is in beta state. Use F6 to toggle FreeCam, or change key bind in the settings.
+Please don't enable FreeCam while your character can be moved by something, for example flowing water, or while falling.
+'''
+# A dependency - use the . to indicate dependency for a specific modid. Dependencies are optional.
+[[dependencies.zergatul.freecam]] #optional
+    # the modid of the dependency
+    modId="forge" #mandatory
+    # Does this dependency have to exist - if not, ordering below must be specified
+    mandatory=true #mandatory
+    # The version range of the dependency
+    versionRange="[40,)" #mandatory
+    # An ordering relationship for the dependency - BEFORE or AFTER required if the relationship is not mandatory
+    ordering="NONE"
+    # Side this dependency is applied on - BOTH, CLIENT or SERVER
+    side="BOTH"
+# Here's another dependency
+[[dependencies.zergatul.freecam]]
+    modId="minecraft"
+    mandatory=true
+# This version range declares a minimum of the current minecraft version up to but not including the next major version
+    versionRange="[1.18.2,1.19)"
+    ordering="NONE"
+    side="BOTH"
