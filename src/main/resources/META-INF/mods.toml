@@ -21,8 +21,7 @@ displayURL="https://github.com/Zergatul/freecam" #optional
 authors="Zergatul" #optional
 # The description text for the mod (multi line!) (#mandatory)
 description='''
-Mod is in beta state. Use F6 to toggle FreeCam, or change key bind in the settings.
-Please don't enable FreeCam while your character can be moved by something, for example flowing water, or while falling.
+Use F6 to toggle FreeCam, or change key bind in the settings.
 '''
 # A dependency - use the . to indicate dependency for a specific modid. Dependencies are optional.
 [[dependencies.zergatul.freecam]] #optional

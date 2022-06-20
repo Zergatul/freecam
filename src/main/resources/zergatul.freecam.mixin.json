@@ -6,8 +6,11 @@
   "compatibilityLevel": "JAVA_17",
   "mixins": [
     "MixinCamera",
-    "MixinClientboundPlayerInfoPacket",
-    "MixinClientPacketListener",
-    "MixinPlayerRenderer"
+    "MixinCameraType",
+    "MixinEntity",
+    "MixinGameRenderer",
+    "MixinGui",
+    "MixinLevelRenderer",
+    "MixinMouseHandler"
   ]
 }
