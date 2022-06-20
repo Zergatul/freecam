@@ -15,7 +15,6 @@ public class ModMain {
     private void setup(final FMLCommonSetupEvent event) {
         KeyBindingsController.instance.setup();
         MinecraftForge.EVENT_BUS.register(KeyBindingsController.instance);
-        MinecraftForge.EVENT_BUS.register(NetworkPacketsController.instance);
         MinecraftForge.EVENT_BUS.register(FreeCamController.instance);
     }
 }

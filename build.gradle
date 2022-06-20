@@ -16,7 +16,7 @@ plugins {
 apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'org.spongepowered.mixin'
 
-version = '0.2'
+version = '1.0'
 group = 'com.zergatul.freecam'
 archivesBaseName = 'zergatul.freecam'
 
@@ -106,7 +106,7 @@ jar {
         attributes([
                 "Specification-Title"     : "zergatul.freecam",
                 "Specification-Vendor"    : "Zergatul",
-                "Specification-Version"   : "0.2", // We are version 1 of ourselves
+                "Specification-Version"   : "1.0", // We are version 1 of ourselves
                 "Implementation-Title"    : project.name,
                 "Implementation-Version"  : project.jar.archiveVersion,
                 "Implementation-Vendor"   : "Zergatul",
