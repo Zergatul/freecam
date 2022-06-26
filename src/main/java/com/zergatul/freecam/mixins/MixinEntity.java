@@ -16,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(Entity.class)
 public abstract class MixinEntity {
 
-    @Shadow
+    @Shadow(aliases = "Lnet/minecraft/world/entity/Entity;calculateViewVector(FF)Lnet/minecraft/world/phys/Vec3;")
     protected abstract Vec3 calculateViewVector(float p_20172_, float p_20173_);
 
     @Inject(at = @At("HEAD"), method = "Lnet/minecraft/world/entity/Entity;turn(DD)V", cancellable = true)
@@ -36,33 +36,25 @@ public abstract class MixinEntity {
 
     @Inject(at = @At("HEAD"), method = "Lnet/minecraft/world/entity/Entity;getEyePosition(F)Lnet/minecraft/world/phys/Vec3;", cancellable = true)
     private void onGetEyePosition(float p_20300_, CallbackInfoReturnable<Vec3> info) {
-        if (!MixinGameRendererHelper.insidePick) {
-            return;
-        }
-        FreeCamController freecam = FreeCamController.instance;
-        if (!freecam.isActive()) {
-            return;
-        }
-        var entity = (Entity) (Object) this;
-        if (entity instanceof LocalPlayer) {
-            info.setReturnValue(new Vec3(freecam.getX(), freecam.getY(), freecam.getZ()));
-            info.cancel();
+        FreeCamController freeCam = FreeCamController.instance;
+        if (freeCam.isActive() && freeCam.shouldOverridePlayerPosition()) {
+            var entity = (Entity) (Object) this;
+            if (entity instanceof LocalPlayer) {
+                info.setReturnValue(new Vec3(freeCam.getX(), freeCam.getY(), freeCam.getZ()));
+                info.cancel();
+            }
         }
     }
 
     @Inject(at = @At("HEAD"), method = "Lnet/minecraft/world/entity/Entity;getViewVector(F)Lnet/minecraft/world/phys/Vec3;", cancellable = true)
     private void onGetViewVector(float p_20253_, CallbackInfoReturnable<Vec3> info) {
-        if (!MixinGameRendererHelper.insidePick) {
-            return;
-        }
-        FreeCamController freecam = FreeCamController.instance;
-        if (!freecam.isActive()) {
-            return;
-        }
-        var entity = (Entity) (Object) this;
-        if (entity instanceof LocalPlayer) {
-            info.setReturnValue(this.calculateViewVector(freecam.getXRot(), freecam.getYRot()));
-            info.cancel();
+        FreeCamController freeCam = FreeCamController.instance;
+        if (freeCam.isActive() && freeCam.shouldOverridePlayerPosition()) {
+            var entity = (Entity) (Object) this;
+            if (entity instanceof LocalPlayer) {
+                info.setReturnValue(this.calculateViewVector(freeCam.getXRot(), freeCam.getYRot()));
+                info.cancel();
+            }
         }
     }
 }
