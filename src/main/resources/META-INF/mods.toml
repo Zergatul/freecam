@@ -20,9 +20,7 @@ displayURL="https://github.com/Zergatul/freecam" #optional
 # A text field displayed in the mod UI
 authors="Zergatul" #optional
 # The description text for the mod (multi line!) (#mandatory)
-description='''
-Use F6 to toggle FreeCam, or change key bind in the settings.
-'''
+description="Use F6 to toggle FreeCam, or change key bind in the settings."
 # A dependency - use the . to indicate dependency for a specific modid. Dependencies are optional.
 [[dependencies.zergatul.freecam]] #optional
     # the modid of the dependency
