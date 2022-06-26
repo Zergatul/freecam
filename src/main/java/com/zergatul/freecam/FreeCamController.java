@@ -2,18 +2,29 @@ package com.zergatul.freecam;
 
 import com.mojang.math.Quaternion;
 import com.mojang.math.Vector3f;
+import com.zergatul.freecam.helpers.MixinGameRendererHelper;
+import net.minecraft.ChatFormatting;
+import net.minecraft.Util;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.Input;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Registry;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.Property;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class FreeCamController {
 
@@ -34,6 +45,7 @@ public class FreeCamController {
     private double leftVelocity;
     private double upVelocity;
     private long lastTime;
+    private boolean insideRenderDebug;
 
     private FreeCamController() {
 
@@ -180,12 +192,40 @@ public class FreeCamController {
         disable();
     }
 
-    @SubscribeEvent
-    public void onRenderGameOverlayTextEvent(RenderGameOverlayEvent.Text event) {
-        if (mc.options.renderDebug && active) {
-            event.getLeft().add("");
+    public boolean shouldOverridePlayerPosition() {
+        return MixinGameRendererHelper.insidePick || insideRenderDebug;
+    }
+
+    public void onRenderDebugScreenLeft(List<String> list) {
+        if (active) {
+            list.add("");
             String coordinates = String.format(Locale.ROOT, "Free Cam XYZ: %.3f / %.5f / %.3f", x, y, z);
-            event.getLeft().add(coordinates);
+            list.add(coordinates);
+        }
+    }
+
+    public void onRenderDebugScreenRight(List<String> list) {
+        if (active) {
+            insideRenderDebug = true;
+            try {
+                HitResult hit = mc.player.pick(20.0D, 0.0F, false);
+                if (hit.getType() == HitResult.Type.BLOCK) {
+                    BlockPos pos = ((BlockHitResult)hit).getBlockPos();
+                    BlockState state = mc.level.getBlockState(pos);
+                    list.add("");
+                    list.add(ChatFormatting.UNDERLINE + "Free Cam Targeted Block: " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ());
+                    list.add(String.valueOf(Registry.BLOCK.getKey(state.getBlock())));
+
+                    for (var entry: state.getValues().entrySet()) {
+                        list.add(getPropertyValueString(entry));
+                    }
+
+                    state.getTags().map(tag -> "#" + tag.location()).forEach(list::add);
+                }
+            }
+            finally {
+                insideRenderDebug = false;
+            }
         }
     }
 
@@ -214,5 +254,18 @@ public class FreeCamController {
             velocity *= slowdown;
         }
         return velocity;
+    }
+
+    private String getPropertyValueString(Map.Entry<Property<?>, Comparable<?>> p_94072_) {
+        Property<?> property = p_94072_.getKey();
+        Comparable<?> comparable = p_94072_.getValue();
+        String s = Util.getPropertyName(property, comparable);
+        if (Boolean.TRUE.equals(comparable)) {
+            s = ChatFormatting.GREEN + s;
+        } else if (Boolean.FALSE.equals(comparable)) {
+            s = ChatFormatting.RED + s;
+        }
+
+        return property.getName() + ": " + s;
     }
 }
