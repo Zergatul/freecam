@@ -1,5 +1,5 @@
 package com.zergatul.freecam.helpers;
 
-public class MixinGuiHelper {
+public class MixinInGameHudHelper {
     public static boolean insideRenderCrosshair;
 }

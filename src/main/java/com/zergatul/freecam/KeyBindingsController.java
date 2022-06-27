@@ -1,41 +1,26 @@
 package com.zergatul.freecam;
 
-import net.minecraft.client.KeyMapping;
-import net.minecraft.client.Minecraft;
-import net.minecraftforge.client.ClientRegistry;
-import net.minecraftforge.client.event.InputEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
 
 public class KeyBindingsController {
 
     public static final KeyBindingsController instance = new KeyBindingsController();
-    public static final String category = "FreeCam by Zergatul";
 
-    public static KeyMapping toggleFreeCam = new KeyMapping("Toggle free cam", GLFW.GLFW_KEY_F6, category);
+    private KeyBinding keyBinding;
 
-    private Minecraft mc = Minecraft.getInstance();
-
-    private KeyBindingsController() {
-
+    public KeyBinding getKeyBinding() {
+        return keyBinding;
     }
 
     public void setup() {
-        ClientRegistry.registerKeyBinding(toggleFreeCam);
-    }
-
-    @SubscribeEvent
-    public void onKeyInputEvent(InputEvent.KeyInputEvent event) {
-
-        if (mc.player == null) {
-            return;
-        }
-        if (mc.screen != null) {
-            return;
-        }
-
-        if (KeyBindingsController.toggleFreeCam.isDown()) {
-            FreeCamController.instance.toggle();
-        }
+        keyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.zergatul.freecam.toggle",
+                InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_F6,
+                "category.zergatul.freecam"
+        ));
     }
 }

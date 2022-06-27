@@ -1,26 +1,19 @@
 package com.zergatul.freecam;
 
-import com.mojang.math.Quaternion;
-import com.mojang.math.Vector3f;
 import com.zergatul.freecam.helpers.MixinGameRendererHelper;
-import net.minecraft.ChatFormatting;
-import net.minecraft.Util;
-import net.minecraft.client.CameraType;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.Input;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Registry;
-import net.minecraft.util.Mth;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.properties.Property;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult;
-import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.client.event.RenderGameOverlayEvent;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.world.WorldEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.minecraft.block.BlockState;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.input.Input;
+import net.minecraft.client.option.Perspective;
+import net.minecraft.entity.Entity;
+import net.minecraft.state.property.Property;
+import net.minecraft.util.Formatting;
+import net.minecraft.util.Util;
+import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.hit.HitResult;
+import net.minecraft.util.math.*;
+import net.minecraft.util.registry.Registry;
 
 import java.util.List;
 import java.util.Locale;
@@ -30,25 +23,41 @@ public class FreeCamController {
 
     public static final FreeCamController instance = new FreeCamController();
 
-    private final Minecraft mc = Minecraft.getInstance();
+    private final MinecraftClient mc = MinecraftClient.getInstance();
     private final Quaternion rotation = new Quaternion(0.0F, 0.0F, 0.0F, 1.0F);
-    private final Vector3f forwards = new Vector3f(0.0F, 0.0F, 1.0F);
-    private final Vector3f up = new Vector3f(0.0F, 1.0F, 0.0F);
-    private final Vector3f left = new Vector3f(1.0F, 0.0F, 0.0F);
+    private final Vec3f forwards = new Vec3f(0.0F, 0.0F, 1.0F);
+    private final Vec3f up = new Vec3f(0.0F, 1.0F, 0.0F);
+    private final Vec3f left = new Vec3f(1.0F, 0.0F, 0.0F);
     private FreeCamConfig config = new FreeCamConfig();
     private boolean active;
-    private CameraType oldCameraType;
+    private Perspective oldPerspective;
     private Input oldInput;
     private double x, y, z;
-    private float yRot, xRot;
+    private float yaw, pitch;
     private double forwardVelocity;
     private double leftVelocity;
     private double upVelocity;
     private long lastTime;
-    private boolean insideRenderDebug;
+    private boolean insideRenderDebugHud;
 
     private FreeCamController() {
 
+    }
+
+    public void setup() {
+        ClientTickEvents.START_CLIENT_TICK.register(client -> {
+            if (active) {
+                while (mc.options.togglePerspectiveKey.wasPressed()) {
+                    // consume clicks
+                }
+                oldInput.tick(false, 0);
+            }
+        });
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            while (KeyBindingsController.instance.getKeyBinding().wasPressed()) {
+                toggle();
+            }
+        });
     }
 
     public boolean isActive() {
@@ -68,14 +77,14 @@ public class FreeCamController {
     }
 
     public float getXRot() {
-        return xRot;
+        return pitch;
     }
 
     public float getYRot() {
-        return yRot;
+        return yaw;
     }
 
-    public void toggle() {
+    private void toggle() {
         if (active) {
             disable();
         } else {
@@ -83,31 +92,31 @@ public class FreeCamController {
         }
     }
 
-    public void enable() {
+    private void enable() {
         if (!active) {
             active = true;
-            oldCameraType = mc.options.getCameraType();
+            oldPerspective = mc.options.getPerspective();
             oldInput = mc.player.input;
             mc.player.input = new Input();
-            mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
-            if (oldCameraType.isFirstPerson() != mc.options.getCameraType().isFirstPerson()) {
-                mc.gameRenderer.checkEntityPostEffect(mc.options.getCameraType().isFirstPerson() ? mc.getCameraEntity() : null);
+            mc.options.setPerspective(Perspective.THIRD_PERSON_BACK);
+            if (oldPerspective.isFirstPerson() != mc.options.getPerspective().isFirstPerson()) {
+                mc.gameRenderer.onCameraEntitySet(mc.options.getPerspective().isFirstPerson() ? mc.getCameraEntity() : null);
             }
 
-            float frameTime = mc.getFrameTime();
+            float frameTime = mc.getLastFrameDuration();
             Entity entity = mc.getCameraEntity();
-            x = Mth.lerp(frameTime, entity.xo, entity.getX());
-            y = Mth.lerp(frameTime, entity.yo, entity.getY()) + entity.getEyeHeight();
-            z = Mth.lerp(frameTime, entity.zo, entity.getZ());
-            yRot = entity.getViewYRot(frameTime);
-            xRot = entity.getViewXRot(frameTime);
+            x = MathHelper.lerp(frameTime, entity.lastRenderX, entity.getX());
+            y = MathHelper.lerp(frameTime, entity.lastRenderY, entity.getY()) + entity.getStandingEyeHeight();
+            z = MathHelper.lerp(frameTime, entity.lastRenderZ, entity.getZ());
+            yaw = entity.getYaw(frameTime);
+            pitch = entity.getPitch(frameTime);
 
             calculateVectors();
 
             double distance = -2;
-            x += (double)this.forwards.x() * distance;
-            y += (double)this.forwards.y() * distance;
-            z += (double)this.forwards.z() * distance;
+            x += (double)this.forwards.getX() * distance;
+            y += (double)this.forwards.getY() * distance;
+            z += (double)this.forwards.getZ() * distance;
 
             forwardVelocity = 0;
             leftVelocity = 0;
@@ -116,84 +125,64 @@ public class FreeCamController {
         }
     }
 
-    public void disable() {
+    private void disable() {
         if (active) {
             active = false;
-            CameraType cameraType = mc.options.getCameraType();
-            mc.options.setCameraType(oldCameraType);
+            Perspective cameraType = mc.options.getPerspective();
+            mc.options.setPerspective(oldPerspective);
             mc.player.input = oldInput;
-            if (cameraType.isFirstPerson() != mc.options.getCameraType().isFirstPerson()) {
-                mc.gameRenderer.checkEntityPostEffect(mc.options.getCameraType().isFirstPerson() ? mc.getCameraEntity() : null);
+            if (cameraType.isFirstPerson() != mc.options.getPerspective().isFirstPerson()) {
+                mc.gameRenderer.onCameraEntitySet(mc.options.getPerspective().isFirstPerson() ? mc.getCameraEntity() : null);
             }
-            oldCameraType = null;
+            oldPerspective = null;
         }
     }
 
-    public void onMouseTurn(double yRot, double xRot) {
-        this.xRot += (float)xRot * 0.15F;
-        this.yRot += (float)yRot * 0.15F;
-        this.xRot = Mth.clamp(this.xRot, -90, 90);
+    public void onMouseTurn(double cursorDeltaX, double cursorDeltaY) {
+        this.pitch += (float)cursorDeltaY * 0.15F;
+        this.yaw += (float)cursorDeltaX * 0.15F;
+        this.pitch = MathHelper.clamp(this.pitch, -90, 90);
         calculateVectors();
     }
 
-    @SubscribeEvent
-    public void onRenderTick(TickEvent.RenderTickEvent event) {
+    public void onRenderTickStart() {
         if (active) {
-            if (event.phase == TickEvent.Phase.START) {
-                if (lastTime == 0) {
-                    lastTime = System.nanoTime();
-                    return;
-                }
-
-                long currTime = System.nanoTime();
-                float frameTime = (currTime - lastTime) / 1e9f;
-                lastTime = currTime;
-
-                Input input = oldInput;
-                float forwardImpulse = (input.up ? 1 : 0) + (input.down ? -1 : 0);
-                float leftImpulse = (input.left ? 1 : 0) + (input.right ? -1 : 0);
-                float upImpulse = ((input.jumping ? 1 : 0) + (input.shiftKeyDown ? -1 : 0));
-                double slowdown = Math.pow(config.slowdownFactor, frameTime);
-                forwardVelocity = combineMovement(forwardVelocity, forwardImpulse, frameTime, config.acceleration, slowdown);
-                leftVelocity = combineMovement(leftVelocity, leftImpulse, frameTime, config.acceleration, slowdown);
-                upVelocity = combineMovement(upVelocity, upImpulse, frameTime, config.acceleration, slowdown);
-
-                double dx = (double) this.forwards.x() * forwardVelocity + (double) this.left.x() * leftVelocity;
-                double dy = (double) this.forwards.y() * forwardVelocity + upVelocity + (double) this.left.y() * leftVelocity;
-                double dz = (double) this.forwards.z() * forwardVelocity + (double) this.left.z() * leftVelocity;
-                double speed = new Vec3(dx, dy, dz).length() / frameTime;
-                if (speed > config.maxSpeed) {
-                    double factor = config.maxSpeed / speed;
-                    forwardVelocity *= factor;
-                    leftVelocity *= factor;
-                    upVelocity *= factor;
-                }
-                x += dx;
-                y += dy;
-                z += dz;
+            if (lastTime == 0) {
+                lastTime = System.nanoTime();
+                return;
             }
+
+            long currTime = System.nanoTime();
+            float frameTime = (currTime - lastTime) / 1e9f;
+            lastTime = currTime;
+
+            Input input = oldInput;
+            float forwardImpulse = (input.pressingForward ? 1 : 0) + (input.pressingBack ? -1 : 0);
+            float leftImpulse = (input.pressingLeft ? 1 : 0) + (input.pressingRight ? -1 : 0);
+            float upImpulse = ((input.jumping ? 1 : 0) + (input.sneaking ? -1 : 0));
+            double slowdown = Math.pow(config.slowdownFactor, frameTime);
+            forwardVelocity = combineMovement(forwardVelocity, forwardImpulse, frameTime, config.acceleration, slowdown);
+            leftVelocity = combineMovement(leftVelocity, leftImpulse, frameTime, config.acceleration, slowdown);
+            upVelocity = combineMovement(upVelocity, upImpulse, frameTime, config.acceleration, slowdown);
+
+            double dx = (double) this.forwards.getX() * forwardVelocity + (double) this.left.getX() * leftVelocity;
+            double dy = (double) this.forwards.getY() * forwardVelocity + upVelocity + (double) this.left.getY() * leftVelocity;
+            double dz = (double) this.forwards.getZ() * forwardVelocity + (double) this.left.getZ() * leftVelocity;
+            double speed = new Vec3d(dx, dy, dz).length() / frameTime;
+            if (speed > config.maxSpeed) {
+                double factor = config.maxSpeed / speed;
+                forwardVelocity *= factor;
+                leftVelocity *= factor;
+                upVelocity *= factor;
+            }
+            x += dx;
+            y += dy;
+            z += dz;
         }
     }
 
-    @SubscribeEvent
-    public void onClientTick(TickEvent.ClientTickEvent event) {
-        if (active) {
-            if (event.phase == TickEvent.Phase.START) {
-                while (mc.options.keyTogglePerspective.consumeClick()) {
-                    // consume clicks
-                }
-                oldInput.tick(false, 0);
-            }
-        }
-    }
-
-    @SubscribeEvent
-    public void onWorldUnload(WorldEvent.Unload event) {
+    public void onWorldUnload() {
         disable();
-    }
-
-    public boolean shouldOverridePlayerPosition() {
-        return MixinGameRendererHelper.insidePick || insideRenderDebug;
     }
 
     public void onRenderDebugScreenLeft(List<String> list) {
@@ -206,39 +195,43 @@ public class FreeCamController {
 
     public void onRenderDebugScreenRight(List<String> list) {
         if (active) {
-            insideRenderDebug = true;
+            insideRenderDebugHud = true;
             try {
-                HitResult hit = mc.player.pick(20.0D, 0.0F, false);
+                HitResult hit = mc.player.raycast(20.0D, 0.0F, false);
                 if (hit.getType() == HitResult.Type.BLOCK) {
                     BlockPos pos = ((BlockHitResult)hit).getBlockPos();
-                    BlockState state = mc.level.getBlockState(pos);
+                    BlockState state = mc.world.getBlockState(pos);
                     list.add("");
-                    list.add(ChatFormatting.UNDERLINE + "Free Cam Targeted Block: " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ());
-                    list.add(String.valueOf(Registry.BLOCK.getKey(state.getBlock())));
+                    list.add(Formatting.UNDERLINE + "Free Cam Targeted Block: " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ());
+                    list.add(String.valueOf(Registry.BLOCK.getId(state.getBlock())));
 
-                    for (var entry: state.getValues().entrySet()) {
-                        list.add(getPropertyValueString(entry));
+                    for (var entry: state.getEntries().entrySet()) {
+                        list.add(propertyToString(entry));
                     }
 
-                    state.getTags().map(tag -> "#" + tag.location()).forEach(list::add);
+                    state.streamTags().map(tag -> "#" + tag.id()).forEach(list::add);
                 }
             }
             finally {
-                insideRenderDebug = false;
+                insideRenderDebugHud = false;
             }
         }
     }
 
+    public boolean shouldOverridePlayerPosition() {
+        return MixinGameRendererHelper.insideUpdateTargetedEntity || insideRenderDebugHud;
+    }
+
     private void calculateVectors() {
         rotation.set(0.0F, 0.0F, 0.0F, 1.0F);
-        rotation.mul(Vector3f.YP.rotationDegrees(-yRot));
-        rotation.mul(Vector3f.XP.rotationDegrees(xRot));
+        rotation.hamiltonProduct(Vec3f.POSITIVE_Y.getDegreesQuaternion(-yaw));
+        rotation.hamiltonProduct(Vec3f.POSITIVE_X.getDegreesQuaternion(pitch));
         forwards.set(0.0F, 0.0F, 1.0F);
-        forwards.transform(rotation);
+        forwards.rotate(rotation);
         up.set(0.0F, 1.0F, 0.0F);
-        up.transform(rotation);
+        up.rotate(rotation);
         left.set(1.0F, 0.0F, 0.0F);
-        left.transform(rotation);
+        left.rotate(rotation);
     }
 
     private double combineMovement(double velocity, double impulse, double frameTime, double acceleration, double slowdown) {
@@ -256,16 +249,16 @@ public class FreeCamController {
         return velocity;
     }
 
-    private String getPropertyValueString(Map.Entry<Property<?>, Comparable<?>> p_94072_) {
-        Property<?> property = p_94072_.getKey();
-        Comparable<?> comparable = p_94072_.getValue();
-        String s = Util.getPropertyName(property, comparable);
+    private String propertyToString(Map.Entry<Property<?>, Comparable<?>> propEntry) {
+        Property<?> property = propEntry.getKey();
+        Comparable<?> comparable = propEntry.getValue();
+        String string = Util.getValueAsString(property, comparable);
         if (Boolean.TRUE.equals(comparable)) {
-            s = ChatFormatting.GREEN + s;
+            string = Formatting.GREEN + string;
         } else if (Boolean.FALSE.equals(comparable)) {
-            s = ChatFormatting.RED + s;
+            string = Formatting.RED + string;
         }
 
-        return property.getName() + ": " + s;
+        return property.getName() + ": " + string;
     }
 }
