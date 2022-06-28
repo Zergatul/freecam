@@ -6,6 +6,6 @@ public class ModMain implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         KeyBindingsController.instance.setup();
-        FreeCamController.instance.setup();
+        ModApiWrapper.instance.setup();
     }
 }

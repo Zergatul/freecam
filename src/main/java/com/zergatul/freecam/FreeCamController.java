@@ -7,12 +7,16 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.input.Input;
 import net.minecraft.client.option.Perspective;
 import net.minecraft.entity.Entity;
+import net.minecraft.network.message.MessageType;
 import net.minecraft.state.property.Property;
+import net.minecraft.text.MutableText;
+import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Util;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.*;
+import net.minecraft.util.registry.DynamicRegistryManager;
 import net.minecraft.util.registry.Registry;
 
 import java.util.List;
@@ -28,7 +32,7 @@ public class FreeCamController {
     private final Vec3f forwards = new Vec3f(0.0F, 0.0F, 1.0F);
     private final Vec3f up = new Vec3f(0.0F, 1.0F, 0.0F);
     private final Vec3f left = new Vec3f(1.0F, 0.0F, 0.0F);
-    private FreeCamConfig config = new FreeCamConfig();
+    private FreeCamConfig config = ConfigStore.instance.load();
     private boolean active;
     private Perspective oldPerspective;
     private Input oldInput;
@@ -39,25 +43,12 @@ public class FreeCamController {
     private double upVelocity;
     private long lastTime;
     private boolean insideRenderDebugHud;
+    private MutableText chatPrefix = Text.literal("[freecam]").formatted(Formatting.GREEN).append(" ");
+    private MessageType chatType;
 
     private FreeCamController() {
-
-    }
-
-    public void setup() {
-        ClientTickEvents.START_CLIENT_TICK.register(client -> {
-            if (active) {
-                while (mc.options.togglePerspectiveKey.wasPressed()) {
-                    // consume clicks
-                }
-                oldInput.tick(false, 0);
-            }
-        });
-        ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            while (KeyBindingsController.instance.getKeyBinding().wasPressed()) {
-                toggle();
-            }
-        });
+        Registry<MessageType> registry = DynamicRegistryManager.BUILTIN.get().get(Registry.MESSAGE_TYPE_KEY);
+        chatType = registry.get(MessageType.SYSTEM);
     }
 
     public boolean isActive() {
@@ -138,6 +129,106 @@ public class FreeCamController {
         }
     }
 
+    public void onKeyInput() {
+        if (mc.player == null) {
+            return;
+        }
+        if (mc.currentScreen != null) {
+            return;
+        }
+        if (KeyBindingsController.instance.getKeyBinding().isPressed()) {
+            toggle();
+        }
+    }
+
+    public void onClientChat(String message, ModApiWrapper.Event event) {
+        if (message == null) {
+            return;
+        }
+        message = message.toLowerCase(Locale.ROOT);
+        if (message.startsWith(".freecam")) {
+            String[] parts = message.split("\s+");
+            switch (parts.length) {
+                case 1:
+                    if (parts[0].equals(".freecam")) {
+                        mc.inGameHud.onGameMessage(chatType, chatPrefix.copy()
+                                .append(Text.literal("Current settings").formatted(Formatting.YELLOW)).append("\n")
+                                .append(Text.literal("- maxspeed=" + config.maxSpeed).formatted(Formatting.WHITE)).append("\n")
+                                .append(Text.literal("- acceleration=" + config.acceleration).formatted(Formatting.WHITE)).append("\n")
+                                .append(Text.literal("- slowdown=" + config.slowdownFactor).formatted(Formatting.WHITE)));
+                    } else {
+                        printHelp();
+                    }
+                    break;
+
+                case 2:
+                    printHelp();
+                    break;
+
+                case 3:
+                    double value;
+                    try {
+                        value = Double.parseDouble(parts[2]);
+                    } catch (NumberFormatException e) {
+                        value = Double.NaN;
+                    }
+                    if (Double.isNaN(value)) {
+                        printError("Cannot parse value");
+                    } else {
+                        switch (parts[1]) {
+                            case "maxspeed":
+                            case "max":
+                            case "speed":
+                            case "s":
+                                if (value < FreeCamConfig.MinMaxSpeed || value > FreeCamConfig.MaxMaxSpeed) {
+                                    printError("Value out of range. Allowed range: [" + FreeCamConfig.MinMaxSpeed + " - " + FreeCamConfig.MaxMaxSpeed + "]");
+                                } else {
+                                    config.maxSpeed = value;
+                                    ConfigStore.instance.save(config);
+                                    printInfo("Config updated");
+                                }
+                                break;
+
+                            case "acceleration":
+                            case "acc":
+                            case "a":
+                                if (value < FreeCamConfig.MinAcceleration || value > FreeCamConfig.MaxAcceleration) {
+                                    printError("Value out of range. Allowed range: [" + FreeCamConfig.MinAcceleration + " - " + FreeCamConfig.MaxAcceleration + "]");
+                                } else {
+                                    config.acceleration = value;
+                                    ConfigStore.instance.save(config);
+                                    printInfo("Config updated");
+                                }
+                                break;
+
+                            case "slowdown":
+                            case "slow":
+                            case "sd":
+                                if (value < FreeCamConfig.MinSlowdownFactor || value > FreeCamConfig.MaxSlowdownFactor) {
+                                    printError("Value out of range. Allowed range: [" + FreeCamConfig.MinSlowdownFactor + " - " + FreeCamConfig.MinSlowdownFactor + "]");
+                                } else {
+                                    config.slowdownFactor = value;
+                                    ConfigStore.instance.save(config);
+                                    printInfo("Config updated");
+                                }
+                                break;
+
+                            default:
+                                printHelp();
+                                break;
+                        }
+                    }
+                    break;
+
+                default:
+                    printHelp();
+                    break;
+
+            }
+            event.cancel();
+        }
+    }
+
     public void onMouseTurn(double cursorDeltaX, double cursorDeltaY) {
         this.pitch += (float)cursorDeltaY * 0.15F;
         this.yaw += (float)cursorDeltaX * 0.15F;
@@ -168,16 +259,31 @@ public class FreeCamController {
             double dx = (double) this.forwards.getX() * forwardVelocity + (double) this.left.getX() * leftVelocity;
             double dy = (double) this.forwards.getY() * forwardVelocity + upVelocity + (double) this.left.getY() * leftVelocity;
             double dz = (double) this.forwards.getZ() * forwardVelocity + (double) this.left.getZ() * leftVelocity;
+            dx *= frameTime;
+            dy *= frameTime;
+            dz *= frameTime;
             double speed = new Vec3d(dx, dy, dz).length() / frameTime;
             if (speed > config.maxSpeed) {
                 double factor = config.maxSpeed / speed;
                 forwardVelocity *= factor;
                 leftVelocity *= factor;
                 upVelocity *= factor;
+                dx *= factor;
+                dy *= factor;
+                dz *= factor;
             }
             x += dx;
             y += dy;
             z += dz;
+        }
+    }
+
+    public void onClientTickStart() {
+        if (active) {
+            while (mc.options.togglePerspectiveKey.wasPressed()) {
+                // consume clicks
+            }
+            oldInput.tick(false, 0);
         }
     }
 
@@ -260,5 +366,37 @@ public class FreeCamController {
         }
 
         return property.getName() + ": " + string;
+    }
+
+    private void printInfo(String message) {
+        mc.inGameHud.onGameMessage(chatType, chatPrefix.copy()
+                .append(Text.literal(message).formatted(Formatting.GOLD)));
+    }
+
+    private void printError(String message) {
+        mc.inGameHud.onGameMessage(chatType, chatPrefix.copy()
+                .append(Text.literal(message).formatted(Formatting.RED)));
+    }
+
+    private void printHelp() {
+        mc.inGameHud.onGameMessage(chatType, chatPrefix.copy()
+                .append(Text.literal("Invalid syntax").formatted(Formatting.RED)).append("\n")
+                .append(Text.literal("- ").formatted(Formatting.WHITE))
+                .append(Text.literal(".freecam maxspeed 50").formatted(Formatting.YELLOW))
+                .append(Text.literal(" set maximum speed, blocks/second").formatted(Formatting.WHITE))
+                .append("\n")
+                .append(Text.literal(" (synonyms: max, speed, s)").formatted(Formatting.AQUA))
+                .append("\n")
+                .append(Text.literal("- ").formatted(Formatting.WHITE))
+                .append(Text.literal(".freecam acceleration 50").formatted(Formatting.YELLOW))
+                .append(Text.literal(" set acceleration speed, blocks/second^2").formatted(Formatting.WHITE))
+                .append("\n")
+                .append(Text.literal(" (synonyms: acc, a)").formatted(Formatting.AQUA))
+                .append("\n")
+                .append(Text.literal("- ").formatted(Formatting.WHITE))
+                .append(Text.literal(".freecam slowdown 0.01").formatted(Formatting.YELLOW))
+                .append(Text.literal(" set slow down speed. When no keys is pressed speed is multiplied by this value every second.").formatted(Formatting.WHITE))
+                .append("\n")
+                .append(Text.literal(" (synonyms: slow, sd)").formatted(Formatting.AQUA)));
     }
 }
