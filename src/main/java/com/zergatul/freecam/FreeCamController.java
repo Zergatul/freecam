@@ -7,14 +7,10 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.chat.ChatListener;
 import net.minecraft.client.player.Input;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
-import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.chat.*;
-import net.minecraft.network.chat.contents.LiteralContents;
-import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -23,10 +19,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 public class FreeCamController {
 
@@ -48,12 +41,10 @@ public class FreeCamController {
     private double upVelocity;
     private long lastTime;
     private boolean insideRenderDebug;
-    private MutableComponent chatPrefix = Component.literal("[freecam]").withStyle(ChatFormatting.GREEN).append(" ");
-    private ChatType chatType;
+    private MutableComponent chatPrefix = new TextComponent("[freecam]").withStyle(ChatFormatting.GREEN).append(" ");
+    private ChatType chatType = ChatType.SYSTEM;
 
     private FreeCamController() {
-        Registry<ChatType> registry = RegistryAccess.BUILTIN.get().registryOrThrow(Registry.CHAT_TYPE_REGISTRY);
-        chatType = registry.get(ChatType.SYSTEM);
     }
 
     public boolean isActive() {
@@ -156,11 +147,12 @@ public class FreeCamController {
             switch (parts.length) {
                 case 1:
                     if (parts[0].equals(".freecam")) {
-                        mc.gui.handleSystemChat(chatType, chatPrefix.copy()
-                                .append(Component.literal("Current settings").withStyle(ChatFormatting.YELLOW)).append("\n")
-                                .append(Component.literal("- maxspeed=" + config.maxSpeed).withStyle(ChatFormatting.WHITE)).append("\n")
-                                .append(Component.literal("- acceleration=" + config.acceleration).withStyle(ChatFormatting.WHITE)).append("\n")
-                                .append(Component.literal("- slowdown=" + config.slowdownFactor).withStyle(ChatFormatting.WHITE)));
+                        mc.gui.handleChat(chatType, chatPrefix.copy()
+                                .append(new TextComponent("Current settings").withStyle(ChatFormatting.YELLOW)).append("\n")
+                                .append(new TextComponent("- maxspeed=" + config.maxSpeed).withStyle(ChatFormatting.WHITE)).append("\n")
+                                .append(new TextComponent("- acceleration=" + config.acceleration).withStyle(ChatFormatting.WHITE)).append("\n")
+                                .append(new TextComponent("- slowdown=" + config.slowdownFactor).withStyle(ChatFormatting.WHITE)),
+                                Util.NIL_UUID);
                     } else {
                         printHelp();
                     }
@@ -288,7 +280,7 @@ public class FreeCamController {
             while (mc.options.keyTogglePerspective.consumeClick()) {
                 // consume clicks
             }
-            oldInput.tick(false, 0);
+            oldInput.tick(false);
         }
     }
 
@@ -374,34 +366,37 @@ public class FreeCamController {
     }
 
     private void printInfo(String message) {
-        mc.gui.handleSystemChat(chatType, chatPrefix.copy()
-                .append(Component.literal(message).withStyle(ChatFormatting.GOLD)));
+        mc.gui.handleChat(chatType, chatPrefix.copy()
+                .append(new TextComponent(message).withStyle(ChatFormatting.GOLD)),
+                Util.NIL_UUID);
     }
 
     private void printError(String message) {
-        mc.gui.handleSystemChat(chatType, chatPrefix.copy()
-                .append(Component.literal(message).withStyle(ChatFormatting.RED)));
+        mc.gui.handleChat(chatType, chatPrefix.copy()
+                .append(new TextComponent(message).withStyle(ChatFormatting.RED)),
+                Util.NIL_UUID);
     }
 
     private void printHelp() {
-        mc.gui.handleSystemChat(chatType, chatPrefix.copy()
-                .append(Component.literal("Invalid syntax").withStyle(ChatFormatting.RED)).append("\n")
-                .append(Component.literal("- ").withStyle(ChatFormatting.WHITE))
-                        .append(Component.literal(".freecam maxspeed 50").withStyle(ChatFormatting.YELLOW))
-                        .append(Component.literal(" set maximum speed, blocks/second").withStyle(ChatFormatting.WHITE))
+        mc.gui.handleChat(chatType, chatPrefix.copy()
+                .append(new TextComponent("Invalid syntax").withStyle(ChatFormatting.RED)).append("\n")
+                .append(new TextComponent("- ").withStyle(ChatFormatting.WHITE))
+                        .append(new TextComponent(".freecam maxspeed 50").withStyle(ChatFormatting.YELLOW))
+                        .append(new TextComponent(" set maximum speed, blocks/second").withStyle(ChatFormatting.WHITE))
                         .append("\n")
-                        .append(Component.literal(" (synonyms: max, speed, s)").withStyle(ChatFormatting.AQUA))
+                        .append(new TextComponent(" (synonyms: max, speed, s)").withStyle(ChatFormatting.AQUA))
                         .append("\n")
-                .append(Component.literal("- ").withStyle(ChatFormatting.WHITE))
-                    .append(Component.literal(".freecam acceleration 50").withStyle(ChatFormatting.YELLOW))
-                    .append(Component.literal(" set acceleration speed, blocks/second^2").withStyle(ChatFormatting.WHITE))
+                .append(new TextComponent("- ").withStyle(ChatFormatting.WHITE))
+                    .append(new TextComponent(".freecam acceleration 50").withStyle(ChatFormatting.YELLOW))
+                    .append(new TextComponent(" set acceleration speed, blocks/second^2").withStyle(ChatFormatting.WHITE))
                     .append("\n")
-                    .append(Component.literal(" (synonyms: acc, a)").withStyle(ChatFormatting.AQUA))
+                    .append(new TextComponent(" (synonyms: acc, a)").withStyle(ChatFormatting.AQUA))
                     .append("\n")
-                .append(Component.literal("- ").withStyle(ChatFormatting.WHITE))
-                    .append(Component.literal(".freecam slowdown 0.01").withStyle(ChatFormatting.YELLOW))
-                    .append(Component.literal(" set slow down speed. When no keys is pressed speed is multiplied by this value every second.").withStyle(ChatFormatting.WHITE))
+                .append(new TextComponent("- ").withStyle(ChatFormatting.WHITE))
+                    .append(new TextComponent(".freecam slowdown 0.01").withStyle(ChatFormatting.YELLOW))
+                    .append(new TextComponent(" set slow down speed. When no keys is pressed speed is multiplied by this value every second.").withStyle(ChatFormatting.WHITE))
                     .append("\n")
-                    .append(Component.literal(" (synonyms: slow, sd)").withStyle(ChatFormatting.AQUA)));
+                    .append(new TextComponent(" (synonyms: slow, sd)").withStyle(ChatFormatting.AQUA)),
+                Util.NIL_UUID);
     }
 }
