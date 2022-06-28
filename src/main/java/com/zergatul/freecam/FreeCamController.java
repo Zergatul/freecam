@@ -7,9 +7,14 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.chat.ChatListener;
 import net.minecraft.client.player.Input;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.network.chat.*;
+import net.minecraft.network.chat.contents.LiteralContents;
+import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -17,14 +22,11 @@ import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.client.event.RenderGameOverlayEvent;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.world.WorldEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 public class FreeCamController {
 
@@ -35,7 +37,7 @@ public class FreeCamController {
     private final Vector3f forwards = new Vector3f(0.0F, 0.0F, 1.0F);
     private final Vector3f up = new Vector3f(0.0F, 1.0F, 0.0F);
     private final Vector3f left = new Vector3f(1.0F, 0.0F, 0.0F);
-    private FreeCamConfig config = new FreeCamConfig();
+    private FreeCamConfig config = ConfigStore.instance.load();
     private boolean active;
     private CameraType oldCameraType;
     private Input oldInput;
@@ -46,9 +48,12 @@ public class FreeCamController {
     private double upVelocity;
     private long lastTime;
     private boolean insideRenderDebug;
+    private MutableComponent chatPrefix = Component.literal("[freecam]").withStyle(ChatFormatting.GREEN).append(" ");
+    private ChatType chatType;
 
     private FreeCamController() {
-
+        Registry<ChatType> registry = RegistryAccess.BUILTIN.get().registryOrThrow(Registry.CHAT_TYPE_REGISTRY);
+        chatType = registry.get(ChatType.SYSTEM);
     }
 
     public boolean isActive() {
@@ -129,6 +134,106 @@ public class FreeCamController {
         }
     }
 
+    public void onKeyInput() {
+        if (mc.player == null) {
+            return;
+        }
+        if (mc.screen != null) {
+            return;
+        }
+        if (KeyBindingsController.toggleFreeCam.isDown()) {
+            toggle();
+        }
+    }
+
+    public void onClientChat(String message, ModApiWrapper.Event event) {
+        if (message == null) {
+            return;
+        }
+        message = message.toLowerCase(Locale.ROOT);
+        if (message.startsWith(".freecam")) {
+            String[] parts = message.split("\s+");
+            switch (parts.length) {
+                case 1:
+                    if (parts[0].equals(".freecam")) {
+                        mc.gui.handleSystemChat(chatType, chatPrefix.copy()
+                                .append(Component.literal("Current settings").withStyle(ChatFormatting.YELLOW)).append("\n")
+                                .append(Component.literal("- maxspeed=" + config.maxSpeed).withStyle(ChatFormatting.WHITE)).append("\n")
+                                .append(Component.literal("- acceleration=" + config.acceleration).withStyle(ChatFormatting.WHITE)).append("\n")
+                                .append(Component.literal("- slowdown=" + config.slowdownFactor).withStyle(ChatFormatting.WHITE)));
+                    } else {
+                        printHelp();
+                    }
+                    break;
+
+                case 2:
+                    printHelp();
+                    break;
+
+                case 3:
+                    double value;
+                    try {
+                        value = Double.parseDouble(parts[2]);
+                    } catch (NumberFormatException e) {
+                        value = Double.NaN;
+                    }
+                    if (Double.isNaN(value)) {
+                        printError("Cannot parse value");
+                    } else {
+                        switch (parts[1]) {
+                            case "maxspeed":
+                            case "max":
+                            case "speed":
+                            case "s":
+                                if (value < FreeCamConfig.MinMaxSpeed || value > FreeCamConfig.MaxMaxSpeed) {
+                                    printError("Value out of range. Allowed range: [" + FreeCamConfig.MinMaxSpeed + " - " + FreeCamConfig.MaxMaxSpeed + "]");
+                                } else {
+                                    config.maxSpeed = value;
+                                    ConfigStore.instance.save(config);
+                                    printInfo("Config updated");
+                                }
+                                break;
+
+                            case "acceleration":
+                            case "acc":
+                            case "a":
+                                if (value < FreeCamConfig.MinAcceleration || value > FreeCamConfig.MaxAcceleration) {
+                                    printError("Value out of range. Allowed range: [" + FreeCamConfig.MinAcceleration + " - " + FreeCamConfig.MaxAcceleration + "]");
+                                } else {
+                                    config.acceleration = value;
+                                    ConfigStore.instance.save(config);
+                                    printInfo("Config updated");
+                                }
+                                break;
+
+                            case "slowdown":
+                            case "slow":
+                            case "sd":
+                                if (value < FreeCamConfig.MinSlowdownFactor || value > FreeCamConfig.MaxSlowdownFactor) {
+                                    printError("Value out of range. Allowed range: [" + FreeCamConfig.MinSlowdownFactor + " - " + FreeCamConfig.MinSlowdownFactor + "]");
+                                } else {
+                                    config.slowdownFactor = value;
+                                    ConfigStore.instance.save(config);
+                                    printInfo("Config updated");
+                                }
+                                break;
+
+                            default:
+                                printHelp();
+                                break;
+                        }
+                    }
+                    break;
+
+                default:
+                    printHelp();
+                    break;
+
+            }
+            event.cancel();
+        }
+    }
+
     public void onMouseTurn(double yRot, double xRot) {
         this.xRot += (float)xRot * 0.15F;
         this.yRot += (float)yRot * 0.15F;
@@ -136,59 +241,58 @@ public class FreeCamController {
         calculateVectors();
     }
 
-    @SubscribeEvent
-    public void onRenderTick(TickEvent.RenderTickEvent event) {
+    public void onRenderTickStart() {
         if (active) {
-            if (event.phase == TickEvent.Phase.START) {
-                if (lastTime == 0) {
-                    lastTime = System.nanoTime();
-                    return;
-                }
-
-                long currTime = System.nanoTime();
-                float frameTime = (currTime - lastTime) / 1e9f;
-                lastTime = currTime;
-
-                Input input = oldInput;
-                float forwardImpulse = (input.up ? 1 : 0) + (input.down ? -1 : 0);
-                float leftImpulse = (input.left ? 1 : 0) + (input.right ? -1 : 0);
-                float upImpulse = ((input.jumping ? 1 : 0) + (input.shiftKeyDown ? -1 : 0));
-                double slowdown = Math.pow(config.slowdownFactor, frameTime);
-                forwardVelocity = combineMovement(forwardVelocity, forwardImpulse, frameTime, config.acceleration, slowdown);
-                leftVelocity = combineMovement(leftVelocity, leftImpulse, frameTime, config.acceleration, slowdown);
-                upVelocity = combineMovement(upVelocity, upImpulse, frameTime, config.acceleration, slowdown);
-
-                double dx = (double) this.forwards.x() * forwardVelocity + (double) this.left.x() * leftVelocity;
-                double dy = (double) this.forwards.y() * forwardVelocity + upVelocity + (double) this.left.y() * leftVelocity;
-                double dz = (double) this.forwards.z() * forwardVelocity + (double) this.left.z() * leftVelocity;
-                double speed = new Vec3(dx, dy, dz).length() / frameTime;
-                if (speed > config.maxSpeed) {
-                    double factor = config.maxSpeed / speed;
-                    forwardVelocity *= factor;
-                    leftVelocity *= factor;
-                    upVelocity *= factor;
-                }
-                x += dx;
-                y += dy;
-                z += dz;
+            if (lastTime == 0) {
+                lastTime = System.nanoTime();
+                return;
             }
+
+            long currTime = System.nanoTime();
+            float frameTime = (currTime - lastTime) / 1e9f;
+            lastTime = currTime;
+
+            Input input = oldInput;
+            float forwardImpulse = (input.up ? 1 : 0) + (input.down ? -1 : 0);
+            float leftImpulse = (input.left ? 1 : 0) + (input.right ? -1 : 0);
+            float upImpulse = ((input.jumping ? 1 : 0) + (input.shiftKeyDown ? -1 : 0));
+            double slowdown = Math.pow(config.slowdownFactor, frameTime);
+            forwardVelocity = combineMovement(forwardVelocity, forwardImpulse, frameTime, config.acceleration, slowdown);
+            leftVelocity = combineMovement(leftVelocity, leftImpulse, frameTime, config.acceleration, slowdown);
+            upVelocity = combineMovement(upVelocity, upImpulse, frameTime, config.acceleration, slowdown);
+
+            double dx = (double) this.forwards.x() * forwardVelocity + (double) this.left.x() * leftVelocity;
+            double dy = (double) this.forwards.y() * forwardVelocity + upVelocity + (double) this.left.y() * leftVelocity;
+            double dz = (double) this.forwards.z() * forwardVelocity + (double) this.left.z() * leftVelocity;
+            dx *= frameTime;
+            dy *= frameTime;
+            dz *= frameTime;
+            double speed = new Vec3(dx, dy, dz).length() / frameTime;
+            if (speed > config.maxSpeed) {
+                double factor = config.maxSpeed / speed;
+                forwardVelocity *= factor;
+                leftVelocity *= factor;
+                upVelocity *= factor;
+                dx *= factor;
+                dy *= factor;
+                dz *= factor;
+            }
+            x += dx;
+            y += dy;
+            z += dz;
         }
     }
 
-    @SubscribeEvent
-    public void onClientTick(TickEvent.ClientTickEvent event) {
+    public void onClientTickStart() {
         if (active) {
-            if (event.phase == TickEvent.Phase.START) {
-                while (mc.options.keyTogglePerspective.consumeClick()) {
-                    // consume clicks
-                }
-                oldInput.tick(false);
+            while (mc.options.keyTogglePerspective.consumeClick()) {
+                // consume clicks
             }
+            oldInput.tick(false, 0);
         }
     }
 
-    @SubscribeEvent
-    public void onWorldUnload(WorldEvent.Unload event) {
+    public void onWorldUnload() {
         disable();
     }
 
@@ -267,5 +371,37 @@ public class FreeCamController {
         }
 
         return property.getName() + ": " + s;
+    }
+
+    private void printInfo(String message) {
+        mc.gui.handleSystemChat(chatType, chatPrefix.copy()
+                .append(Component.literal(message).withStyle(ChatFormatting.GOLD)));
+    }
+
+    private void printError(String message) {
+        mc.gui.handleSystemChat(chatType, chatPrefix.copy()
+                .append(Component.literal(message).withStyle(ChatFormatting.RED)));
+    }
+
+    private void printHelp() {
+        mc.gui.handleSystemChat(chatType, chatPrefix.copy()
+                .append(Component.literal("Invalid syntax").withStyle(ChatFormatting.RED)).append("\n")
+                .append(Component.literal("- ").withStyle(ChatFormatting.WHITE))
+                        .append(Component.literal(".freecam maxspeed 50").withStyle(ChatFormatting.YELLOW))
+                        .append(Component.literal(" set maximum speed, blocks/second").withStyle(ChatFormatting.WHITE))
+                        .append("\n")
+                        .append(Component.literal(" (synonyms: max, speed, s)").withStyle(ChatFormatting.AQUA))
+                        .append("\n")
+                .append(Component.literal("- ").withStyle(ChatFormatting.WHITE))
+                    .append(Component.literal(".freecam acceleration 50").withStyle(ChatFormatting.YELLOW))
+                    .append(Component.literal(" set acceleration speed, blocks/second^2").withStyle(ChatFormatting.WHITE))
+                    .append("\n")
+                    .append(Component.literal(" (synonyms: acc, a)").withStyle(ChatFormatting.AQUA))
+                    .append("\n")
+                .append(Component.literal("- ").withStyle(ChatFormatting.WHITE))
+                    .append(Component.literal(".freecam slowdown 0.01").withStyle(ChatFormatting.YELLOW))
+                    .append(Component.literal(" set slow down speed. When no keys is pressed speed is multiplied by this value every second.").withStyle(ChatFormatting.WHITE))
+                    .append("\n")
+                    .append(Component.literal(" (synonyms: slow, sd)").withStyle(ChatFormatting.AQUA)));
     }
 }
