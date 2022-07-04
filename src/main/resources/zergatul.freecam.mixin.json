@@ -3,15 +3,15 @@
   "minVersion": "0.8.2",
   "package": "com.zergatul.freecam.mixins",
   "refmap": "zergatul.freecam.mixin-refmap.json",
-  "compatibilityLevel": "JAVA_17",
+  "compatibilityLevel": "JAVA_8",
   "mixins": [
-    "MixinCamera",
-    "MixinCameraType",
-    "MixinDebugScreenOverlay",
+    "MixinActiveRenderInfo",
+    "MixinPointOfView",
+    "MixinDebugOverlayGui",
     "MixinEntity",
     "MixinGameRenderer",
-    "MixinGui",
-    "MixinLevelRenderer",
-    "MixinMouseHandler"
+    "MixinIngameGui",
+    "MixinWorldRenderer",
+    "MixinMouseHelper"
   ]
 }
