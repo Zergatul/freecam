@@ -15,6 +15,7 @@ public abstract class MixinCameraType {
     @Inject(at = @At("HEAD"), method = "Lnet/minecraft/client/CameraType;isFirstPerson()Z", cancellable = true)
     private void onIsFirstPerson(CallbackInfoReturnable<Boolean> info) {
         if (!FreeCamController.instance.isActive()) {
+            MixinGameRendererHelper.insideRenderItemInHand = false;
             return;
         }
         if (MixinGuiHelper.insideRenderCrosshair) {
