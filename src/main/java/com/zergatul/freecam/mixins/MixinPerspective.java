@@ -15,6 +15,7 @@ public abstract class MixinPerspective {
     @Inject(at = @At("HEAD"), method = "Lnet/minecraft/client/option/Perspective;isFirstPerson()Z", cancellable = true)
     private void onIsFirstPerson(CallbackInfoReturnable<Boolean> info) {
         if (!FreeCamController.instance.isActive()) {
+            MixinGameRendererHelper.insideRenderItemInHand = false;
             return;
         }
         if (MixinInGameHudHelper.insideRenderCrosshair) {
