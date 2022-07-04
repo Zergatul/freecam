@@ -22,8 +22,13 @@ public abstract class MixinGameRenderer {
         MixinGameRendererHelper.insidePick = false;
     }
 
-    @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/client/CameraType;isFirstPerson()Z"), method = "Lnet/minecraft/client/renderer/GameRenderer;renderItemInHand(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/Camera;F)V")
-    private void onRenderItemInHand(PoseStack p_109121_, Camera p_109122_, float p_109123_, CallbackInfo info) {
+    @Inject(at = @At("HEAD"), method = "Lnet/minecraft/client/renderer/GameRenderer;renderItemInHand(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/Camera;F)V")
+    private void onBeforeRenderItemInHand(PoseStack p_109121_, Camera p_109122_, float p_109123_, CallbackInfo info) {
         MixinGameRendererHelper.insideRenderItemInHand = true;
+    }
+
+    @Inject(at = @At("TAIL"), method = "Lnet/minecraft/client/renderer/GameRenderer;renderItemInHand(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/Camera;F)V")
+    private void onAfterRenderItemInHand(PoseStack p_109121_, Camera p_109122_, float p_109123_, CallbackInfo info) {
+        MixinGameRendererHelper.insideRenderItemInHand = false;
     }
 }
