@@ -22,6 +22,7 @@ import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.List;
 import java.util.Locale;
@@ -160,7 +161,8 @@ public class FreeCamController {
                                 .append(Component.literal("Current settings").withStyle(ChatFormatting.YELLOW)).append("\n")
                                 .append(Component.literal("- maxspeed=" + config.maxSpeed).withStyle(ChatFormatting.WHITE)).append("\n")
                                 .append(Component.literal("- acceleration=" + config.acceleration).withStyle(ChatFormatting.WHITE)).append("\n")
-                                .append(Component.literal("- slowdown=" + config.slowdownFactor).withStyle(ChatFormatting.WHITE)));
+                                .append(Component.literal("- slowdown=" + config.slowdownFactor).withStyle(ChatFormatting.WHITE)).append("\n")
+                                .append(Component.literal("- hands=" + (config.renderHands ? 1 : 0)).withStyle(ChatFormatting.WHITE)));
                     } else {
                         printHelp();
                     }
@@ -215,6 +217,16 @@ public class FreeCamController {
                                     config.slowdownFactor = value;
                                     ConfigStore.instance.save(config);
                                     printInfo("Config updated");
+                                }
+                                break;
+
+                            case "hands":
+                                if (value == 0) {
+                                    config.renderHands = false;
+                                } else if (value == 1) {
+                                    config.renderHands = true;
+                                } else {
+                                    printError("Invalid value. Only 0 or 1 accepted.");
                                 }
                                 break;
 
@@ -318,7 +330,7 @@ public class FreeCamController {
                     BlockState state = mc.level.getBlockState(pos);
                     list.add("");
                     list.add(ChatFormatting.UNDERLINE + "Free Cam Targeted Block: " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ());
-                    list.add(String.valueOf(Registry.BLOCK.getKey(state.getBlock())));
+                    list.add(String.valueOf(ForgeRegistries.BLOCKS.getKey(state.getBlock())));
 
                     for (var entry: state.getValues().entrySet()) {
                         list.add(getPropertyValueString(entry));
@@ -331,6 +343,10 @@ public class FreeCamController {
                 insideRenderDebug = false;
             }
         }
+    }
+
+    public boolean shouldRenderHands() {
+        return config.renderHands;
     }
 
     private void calculateVectors() {
@@ -402,6 +418,10 @@ public class FreeCamController {
                     .append(Component.literal(".freecam slowdown 0.01").withStyle(ChatFormatting.YELLOW))
                     .append(Component.literal(" set slow down speed. When no keys is pressed speed is multiplied by this value every second.").withStyle(ChatFormatting.WHITE))
                     .append("\n")
-                    .append(Component.literal(" (synonyms: slow, sd)").withStyle(ChatFormatting.AQUA)));
+                    .append(Component.literal(" (synonyms: slow, sd)").withStyle(ChatFormatting.AQUA))
+                    .append("\n")
+                .append(Component.literal("- ").withStyle(ChatFormatting.WHITE))
+                    .append(Component.literal(".freecam hands 1").withStyle(ChatFormatting.YELLOW))
+                    .append(Component.literal(" render hands while in freecam. Values: 0/1.").withStyle(ChatFormatting.WHITE)));
     }
 }
