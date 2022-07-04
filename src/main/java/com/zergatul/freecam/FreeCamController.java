@@ -18,6 +18,7 @@ import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.*;
 
@@ -151,15 +152,12 @@ public class FreeCamController {
                                 .append(new TextComponent("Current settings").withStyle(ChatFormatting.YELLOW)).append("\n")
                                 .append(new TextComponent("- maxspeed=" + config.maxSpeed).withStyle(ChatFormatting.WHITE)).append("\n")
                                 .append(new TextComponent("- acceleration=" + config.acceleration).withStyle(ChatFormatting.WHITE)).append("\n")
-                                .append(new TextComponent("- slowdown=" + config.slowdownFactor).withStyle(ChatFormatting.WHITE)),
+                                .append(new TextComponent("- slowdown=" + config.slowdownFactor).withStyle(ChatFormatting.WHITE).append("\n")
+                                .append(new TextComponent("- hands=" + (config.renderHands ? 1 : 0)).withStyle(ChatFormatting.WHITE))),
                                 Util.NIL_UUID);
                     } else {
                         printHelp();
                     }
-                    break;
-
-                case 2:
-                    printHelp();
                     break;
 
                 case 3:
@@ -181,8 +179,7 @@ public class FreeCamController {
                                     printError("Value out of range. Allowed range: [" + FreeCamConfig.MinMaxSpeed + " - " + FreeCamConfig.MaxMaxSpeed + "]");
                                 } else {
                                     config.maxSpeed = value;
-                                    ConfigStore.instance.save(config);
-                                    printInfo("Config updated");
+                                    saveConfig();
                                 }
                                 break;
 
@@ -193,8 +190,7 @@ public class FreeCamController {
                                     printError("Value out of range. Allowed range: [" + FreeCamConfig.MinAcceleration + " - " + FreeCamConfig.MaxAcceleration + "]");
                                 } else {
                                     config.acceleration = value;
-                                    ConfigStore.instance.save(config);
-                                    printInfo("Config updated");
+                                    saveConfig();
                                 }
                                 break;
 
@@ -205,8 +201,19 @@ public class FreeCamController {
                                     printError("Value out of range. Allowed range: [" + FreeCamConfig.MinSlowdownFactor + " - " + FreeCamConfig.MinSlowdownFactor + "]");
                                 } else {
                                     config.slowdownFactor = value;
-                                    ConfigStore.instance.save(config);
-                                    printInfo("Config updated");
+                                    saveConfig();
+                                }
+                                break;
+
+                            case "hands":
+                                if (value == 0) {
+                                    config.renderHands = false;
+                                    saveConfig();
+                                } else if (value == 1) {
+                                    config.renderHands = true;
+                                    saveConfig();
+                                } else {
+                                    printError("Invalid value. Only 0 or 1 accepted.");
                                 }
                                 break;
 
@@ -310,7 +317,7 @@ public class FreeCamController {
                     BlockState state = mc.level.getBlockState(pos);
                     list.add("");
                     list.add(ChatFormatting.UNDERLINE + "Free Cam Targeted Block: " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ());
-                    list.add(String.valueOf(Registry.BLOCK.getKey(state.getBlock())));
+                    list.add(String.valueOf(ForgeRegistries.BLOCKS.getKey(state.getBlock())));
 
                     for (var entry: state.getValues().entrySet()) {
                         list.add(getPropertyValueString(entry));
@@ -323,6 +330,10 @@ public class FreeCamController {
                 insideRenderDebug = false;
             }
         }
+    }
+
+    public boolean shouldRenderHands() {
+        return config.renderHands;
     }
 
     private void calculateVectors() {
@@ -365,6 +376,11 @@ public class FreeCamController {
         return property.getName() + ": " + s;
     }
 
+    private void saveConfig() {
+        ConfigStore.instance.save(config);
+        printInfo("Config updated");
+    }
+
     private void printInfo(String message) {
         mc.gui.handleChat(chatType, chatPrefix.copy()
                 .append(new TextComponent(message).withStyle(ChatFormatting.GOLD)),
@@ -396,7 +412,11 @@ public class FreeCamController {
                     .append(new TextComponent(".freecam slowdown 0.01").withStyle(ChatFormatting.YELLOW))
                     .append(new TextComponent(" set slow down speed. When no keys is pressed speed is multiplied by this value every second.").withStyle(ChatFormatting.WHITE))
                     .append("\n")
-                    .append(new TextComponent(" (synonyms: slow, sd)").withStyle(ChatFormatting.AQUA)),
+                    .append(new TextComponent(" (synonyms: slow, sd)").withStyle(ChatFormatting.AQUA))
+                    .append("\n")
+                .append(new TextComponent("- ").withStyle(ChatFormatting.WHITE))
+                    .append(new TextComponent(".freecam hands 1").withStyle(ChatFormatting.YELLOW))
+                    .append(new TextComponent(" render hands while in freecam. Values: 0/1.").withStyle(ChatFormatting.WHITE)),
                 Util.NIL_UUID);
     }
 }
