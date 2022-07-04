@@ -1,7 +1,6 @@
 package com.zergatul.freecam;
 
 import com.zergatul.freecam.helpers.MixinGameRendererHelper;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.input.Input;
@@ -155,14 +154,11 @@ public class FreeCamController {
                                 .append(Text.literal("Current settings").formatted(Formatting.YELLOW)).append("\n")
                                 .append(Text.literal("- maxspeed=" + config.maxSpeed).formatted(Formatting.WHITE)).append("\n")
                                 .append(Text.literal("- acceleration=" + config.acceleration).formatted(Formatting.WHITE)).append("\n")
-                                .append(Text.literal("- slowdown=" + config.slowdownFactor).formatted(Formatting.WHITE)));
+                                .append(Text.literal("- slowdown=" + config.slowdownFactor).formatted(Formatting.WHITE)).append("\n")
+                                .append(Text.literal("- hands=" + (config.renderHands ? 1 : 0)).formatted(Formatting.WHITE)));
                     } else {
                         printHelp();
                     }
-                    break;
-
-                case 2:
-                    printHelp();
                     break;
 
                 case 3:
@@ -184,8 +180,7 @@ public class FreeCamController {
                                     printError("Value out of range. Allowed range: [" + FreeCamConfig.MinMaxSpeed + " - " + FreeCamConfig.MaxMaxSpeed + "]");
                                 } else {
                                     config.maxSpeed = value;
-                                    ConfigStore.instance.save(config);
-                                    printInfo("Config updated");
+                                    saveConfig();
                                 }
                                 break;
 
@@ -196,8 +191,7 @@ public class FreeCamController {
                                     printError("Value out of range. Allowed range: [" + FreeCamConfig.MinAcceleration + " - " + FreeCamConfig.MaxAcceleration + "]");
                                 } else {
                                     config.acceleration = value;
-                                    ConfigStore.instance.save(config);
-                                    printInfo("Config updated");
+                                    saveConfig();
                                 }
                                 break;
 
@@ -208,8 +202,19 @@ public class FreeCamController {
                                     printError("Value out of range. Allowed range: [" + FreeCamConfig.MinSlowdownFactor + " - " + FreeCamConfig.MinSlowdownFactor + "]");
                                 } else {
                                     config.slowdownFactor = value;
-                                    ConfigStore.instance.save(config);
-                                    printInfo("Config updated");
+                                    saveConfig();
+                                }
+                                break;
+
+                            case "hands":
+                                if (value == 0) {
+                                    config.renderHands = false;
+                                    saveConfig();
+                                } else if (value == 1) {
+                                    config.renderHands = true;
+                                    saveConfig();
+                                } else {
+                                    printError("Invalid value. Only 0 or 1 accepted.");
                                 }
                                 break;
 
@@ -328,6 +333,10 @@ public class FreeCamController {
         return MixinGameRendererHelper.insideUpdateTargetedEntity || insideRenderDebugHud;
     }
 
+    public boolean shouldRenderHands() {
+        return config.renderHands;
+    }
+
     private void calculateVectors() {
         rotation.set(0.0F, 0.0F, 0.0F, 1.0F);
         rotation.hamiltonProduct(Vec3f.POSITIVE_Y.getDegreesQuaternion(-yaw));
@@ -368,6 +377,11 @@ public class FreeCamController {
         return property.getName() + ": " + string;
     }
 
+    private void saveConfig() {
+        ConfigStore.instance.save(config);
+        printInfo("Config updated");
+    }
+
     private void printInfo(String message) {
         mc.inGameHud.onGameMessage(chatType, chatPrefix.copy()
                 .append(Text.literal(message).formatted(Formatting.GOLD)));
@@ -397,6 +411,10 @@ public class FreeCamController {
                 .append(Text.literal(".freecam slowdown 0.01").formatted(Formatting.YELLOW))
                 .append(Text.literal(" set slow down speed. When no keys is pressed speed is multiplied by this value every second.").formatted(Formatting.WHITE))
                 .append("\n")
-                .append(Text.literal(" (synonyms: slow, sd)").formatted(Formatting.AQUA)));
+                .append(Text.literal(" (synonyms: slow, sd)").formatted(Formatting.AQUA))
+                .append("\n")
+                .append(Text.literal("- ").formatted(Formatting.WHITE))
+                .append(Text.literal(".freecam hands 1").formatted(Formatting.YELLOW))
+                .append(Text.literal(" render hands while in freecam. Values: 0/1.").formatted(Formatting.WHITE)));
     }
 }

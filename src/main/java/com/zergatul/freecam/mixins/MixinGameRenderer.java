@@ -1,7 +1,9 @@
 package com.zergatul.freecam.mixins;
 
 import com.zergatul.freecam.helpers.MixinGameRendererHelper;
+import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.GameRenderer;
+import net.minecraft.client.util.math.MatrixStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -18,5 +20,10 @@ public abstract class MixinGameRenderer {
     @Inject(at = @At("TAIL"), method = "Lnet/minecraft/client/render/GameRenderer;updateTargetedEntity(F)V")
     private void onAfterUpdateTargetedEntity(float tickDelta, CallbackInfo info) {
         MixinGameRendererHelper.insideUpdateTargetedEntity = false;
+    }
+
+    @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/client/option/Perspective;isFirstPerson()Z"), method = "Lnet/minecraft/client/render/GameRenderer;renderHand(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/Camera;F)V")
+    private void onRenderItemInHand(MatrixStack matrices, Camera camera, float tickDelta, CallbackInfo info) {
+        MixinGameRendererHelper.insideRenderItemInHand = true;
     }
 }

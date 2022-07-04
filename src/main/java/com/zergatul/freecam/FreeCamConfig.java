@@ -15,6 +15,7 @@ public class FreeCamConfig {
     public double acceleration;
     public double maxSpeed;
     public double slowdownFactor;
+    public boolean renderHands;
 
     public FreeCamConfig() {
         acceleration = DefaultAcceleration;

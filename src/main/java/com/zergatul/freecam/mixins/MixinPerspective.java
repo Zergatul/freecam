@@ -1,6 +1,7 @@
 package com.zergatul.freecam.mixins;
 
 import com.zergatul.freecam.FreeCamController;
+import com.zergatul.freecam.helpers.MixinGameRendererHelper;
 import com.zergatul.freecam.helpers.MixinInGameHudHelper;
 import net.minecraft.client.option.Perspective;
 import org.spongepowered.asm.mixin.Mixin;
@@ -13,13 +14,19 @@ public abstract class MixinPerspective {
 
     @Inject(at = @At("HEAD"), method = "Lnet/minecraft/client/option/Perspective;isFirstPerson()Z", cancellable = true)
     private void onIsFirstPerson(CallbackInfoReturnable<Boolean> info) {
-        if (!MixinInGameHudHelper.insideRenderCrosshair) {
-            return;
-        }
         if (!FreeCamController.instance.isActive()) {
             return;
         }
-        info.setReturnValue(true);
-        info.cancel();
+        if (MixinInGameHudHelper.insideRenderCrosshair) {
+            info.setReturnValue(true);
+            info.cancel();
+            return;
+        }
+        if (MixinGameRendererHelper.insideRenderItemInHand) {
+            MixinGameRendererHelper.insideRenderItemInHand = false;
+            if (FreeCamController.instance.shouldRenderHands()) {
+                info.setReturnValue(true);
+            }
+        }
     }
 }

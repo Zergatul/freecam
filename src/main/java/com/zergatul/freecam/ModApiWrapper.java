@@ -14,9 +14,6 @@ public class ModApiWrapper {
         ClientTickEvents.START_CLIENT_TICK.register(client -> {
             FreeCamController.instance.onClientTickStart();
         });
-        ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            FreeCamController.instance.onKeyInput();
-        });
     }
 
     public void onClientChatEvent(String message, Event event) {
