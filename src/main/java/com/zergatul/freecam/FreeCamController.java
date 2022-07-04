@@ -168,10 +168,6 @@ public class FreeCamController {
                     }
                     break;
 
-                case 2:
-                    printHelp();
-                    break;
-
                 case 3:
                     double value;
                     try {
@@ -191,8 +187,7 @@ public class FreeCamController {
                                     printError("Value out of range. Allowed range: [" + FreeCamConfig.MinMaxSpeed + " - " + FreeCamConfig.MaxMaxSpeed + "]");
                                 } else {
                                     config.maxSpeed = value;
-                                    ConfigStore.instance.save(config);
-                                    printInfo("Config updated");
+                                    saveConfig();
                                 }
                                 break;
 
@@ -203,8 +198,7 @@ public class FreeCamController {
                                     printError("Value out of range. Allowed range: [" + FreeCamConfig.MinAcceleration + " - " + FreeCamConfig.MaxAcceleration + "]");
                                 } else {
                                     config.acceleration = value;
-                                    ConfigStore.instance.save(config);
-                                    printInfo("Config updated");
+                                    saveConfig();
                                 }
                                 break;
 
@@ -215,16 +209,17 @@ public class FreeCamController {
                                     printError("Value out of range. Allowed range: [" + FreeCamConfig.MinSlowdownFactor + " - " + FreeCamConfig.MinSlowdownFactor + "]");
                                 } else {
                                     config.slowdownFactor = value;
-                                    ConfigStore.instance.save(config);
-                                    printInfo("Config updated");
+                                    saveConfig();
                                 }
                                 break;
 
                             case "hands":
                                 if (value == 0) {
                                     config.renderHands = false;
+                                    saveConfig();
                                 } else if (value == 1) {
                                     config.renderHands = true;
+                                    saveConfig();
                                 } else {
                                     printError("Invalid value. Only 0 or 1 accepted.");
                                 }
@@ -387,6 +382,11 @@ public class FreeCamController {
         }
 
         return property.getName() + ": " + s;
+    }
+
+    private void saveConfig() {
+        ConfigStore.instance.save(config);
+        printInfo("Config updated");
     }
 
     private void printInfo(String message) {
