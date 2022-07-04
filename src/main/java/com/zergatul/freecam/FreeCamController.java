@@ -151,15 +151,12 @@ public class FreeCamController {
                                 .append(new StringTextComponent("Current settings").withStyle(TextFormatting.YELLOW)).append("\n")
                                 .append(new StringTextComponent("- maxspeed=" + config.maxSpeed).withStyle(TextFormatting.WHITE)).append("\n")
                                 .append(new StringTextComponent("- acceleration=" + config.acceleration).withStyle(TextFormatting.WHITE)).append("\n")
-                                .append(new StringTextComponent("- slowdown=" + config.slowdownFactor).withStyle(TextFormatting.WHITE)),
+                                .append(new StringTextComponent("- slowdown=" + config.slowdownFactor).withStyle(TextFormatting.WHITE)).append("\n")
+                                .append(new StringTextComponent("- hands=" + (config.renderHands ? 1 : 0)).withStyle(TextFormatting.WHITE)),
                                 Util.NIL_UUID);
                     } else {
                         printHelp();
                     }
-                    break;
-
-                case 2:
-                    printHelp();
                     break;
 
                 case 3:
@@ -181,8 +178,7 @@ public class FreeCamController {
                                     printError("Value out of range. Allowed range: [" + FreeCamConfig.MinMaxSpeed + " - " + FreeCamConfig.MaxMaxSpeed + "]");
                                 } else {
                                     config.maxSpeed = value;
-                                    ConfigStore.instance.save(config);
-                                    printInfo("Config updated");
+                                    saveConfig();
                                 }
                                 break;
 
@@ -193,8 +189,7 @@ public class FreeCamController {
                                     printError("Value out of range. Allowed range: [" + FreeCamConfig.MinAcceleration + " - " + FreeCamConfig.MaxAcceleration + "]");
                                 } else {
                                     config.acceleration = value;
-                                    ConfigStore.instance.save(config);
-                                    printInfo("Config updated");
+                                    saveConfig();
                                 }
                                 break;
 
@@ -205,8 +200,19 @@ public class FreeCamController {
                                     printError("Value out of range. Allowed range: [" + FreeCamConfig.MinSlowdownFactor + " - " + FreeCamConfig.MinSlowdownFactor + "]");
                                 } else {
                                     config.slowdownFactor = value;
-                                    ConfigStore.instance.save(config);
-                                    printInfo("Config updated");
+                                    saveConfig();
+                                }
+                                break;
+
+                            case "hands":
+                                if (value == 0) {
+                                    config.renderHands = false;
+                                    saveConfig();
+                                } else if (value == 1) {
+                                    config.renderHands = true;
+                                    saveConfig();
+                                } else {
+                                    printError("Invalid value. Only 0 or 1 accepted.");
                                 }
                                 break;
 
@@ -327,6 +333,10 @@ public class FreeCamController {
         }
     }
 
+    public boolean shouldRenderHands() {
+        return config.renderHands;
+    }
+
     private String getPropertyValueString(Map.Entry<Property<?>, Comparable<?>> p_211534_1_) {
         Property<?> property = p_211534_1_.getKey();
         Comparable<?> comparable = p_211534_1_.getValue();
@@ -367,6 +377,11 @@ public class FreeCamController {
         return velocity;
     }
 
+    private void saveConfig() {
+        ConfigStore.instance.save(config);
+        printInfo("Config updated");
+    }
+
     private void printInfo(String message) {
         mc.gui.handleChat(chatType, chatPrefix.copy()
                 .append(new StringTextComponent(message).withStyle(TextFormatting.GOLD)),
@@ -398,7 +413,11 @@ public class FreeCamController {
                     .append(new StringTextComponent(".freecam slowdown 0.01").withStyle(TextFormatting.YELLOW))
                     .append(new StringTextComponent(" set slow down speed. When no keys is pressed speed is multiplied by this value every second.").withStyle(TextFormatting.WHITE))
                     .append("\n")
-                    .append(new StringTextComponent(" (synonyms: slow, sd)").withStyle(TextFormatting.AQUA)),
+                    .append(new StringTextComponent(" (synonyms: slow, sd)").withStyle(TextFormatting.AQUA))
+                    .append("\n")
+                .append(new StringTextComponent("- ").withStyle(TextFormatting.WHITE))
+                    .append(new StringTextComponent(".freecam hands 1").withStyle(TextFormatting.YELLOW))
+                    .append(new StringTextComponent(" render hands while in freecam. Values: 0/1.").withStyle(TextFormatting.WHITE)),
                 Util.NIL_UUID);
     }
 }
