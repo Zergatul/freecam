@@ -22,7 +22,7 @@ public abstract class MixinGameRenderer {
         MixinGameRendererHelper.insideUpdateTargetedEntity = false;
     }
 
-    @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/client/option/Perspective;isFirstPerson()Z"), method = "Lnet/minecraft/client/render/GameRenderer;renderHand(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/Camera;F)V")
+    @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/client/option/Perspective;isFirstPerson()Z"), method = "Lnet/minecraft/client/render/GameRenderer;renderHand(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/Camera;F)V", require = 0)
     private void onRenderItemInHand(MatrixStack matrices, Camera camera, float tickDelta, CallbackInfo info) {
         MixinGameRendererHelper.insideRenderItemInHand = true;
     }
