@@ -4,7 +4,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-         classpath 'org.spongepowered:mixingradle:0.7-SNAPSHOT'
+        classpath 'org.spongepowered:mixingradle:0.7-SNAPSHOT'
     }
 }
 
@@ -16,7 +16,7 @@ plugins {
 apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'org.spongepowered.mixin'
 
-version = '1.2.0'
+version = '1.2.3'
 group = 'com.zergatul.freecam'
 archivesBaseName = 'zergatul.freecam'
 
@@ -92,7 +92,7 @@ repositories {
 }
 
 dependencies {
-    minecraft 'net.minecraftforge:forge:1.19-41.0.22'
+    minecraft 'net.minecraftforge:forge:1.19-41.0.100'
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 }
 

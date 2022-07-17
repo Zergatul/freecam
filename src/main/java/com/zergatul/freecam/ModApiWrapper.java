@@ -3,7 +3,7 @@ package com.zergatul.freecam;
 import net.minecraftforge.client.event.ClientChatEvent;
 import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.world.WorldEvent;
+import net.minecraftforge.event.level.LevelEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 public class ModApiWrapper {
@@ -15,7 +15,7 @@ public class ModApiWrapper {
     }
 
     @SubscribeEvent
-    public void onKeyInputEvent(InputEvent.KeyInputEvent event) {
+    public void onKeyInputEvent(InputEvent.Key event) {
         FreeCamController.instance.onKeyInput();
     }
 
@@ -43,7 +43,7 @@ public class ModApiWrapper {
     }
 
     @SubscribeEvent
-    public void onWorldUnload(WorldEvent.Unload event) {
+    public void onWorldUnload(LevelEvent.Unload event) {
         FreeCamController.instance.onWorldUnload();
     }
 
