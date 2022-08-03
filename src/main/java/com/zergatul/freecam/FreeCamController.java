@@ -7,14 +7,9 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.chat.ChatListener;
 import net.minecraft.client.player.Input;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Registry;
-import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.chat.*;
-import net.minecraft.network.chat.contents.LiteralContents;
-import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -27,7 +22,6 @@ import net.minecraftforge.registries.ForgeRegistries;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 
 public class FreeCamController {
 
@@ -50,11 +44,9 @@ public class FreeCamController {
     private long lastTime;
     private boolean insideRenderDebug;
     private MutableComponent chatPrefix = Component.literal("[freecam]").withStyle(ChatFormatting.GREEN).append(" ");
-    private ChatType chatType;
 
     private FreeCamController() {
-        Registry<ChatType> registry = RegistryAccess.BUILTIN.get().registryOrThrow(Registry.CHAT_TYPE_REGISTRY);
-        chatType = registry.get(ChatType.SYSTEM);
+
     }
 
     public boolean isActive() {
@@ -157,7 +149,7 @@ public class FreeCamController {
             switch (parts.length) {
                 case 1:
                     if (parts[0].equals(".freecam")) {
-                        mc.gui.handleSystemChat(chatType, chatPrefix.copy()
+                        printSystemMessage(chatPrefix.copy()
                                 .append(Component.literal("Current settings").withStyle(ChatFormatting.YELLOW)).append("\n")
                                 .append(Component.literal("- maxspeed=" + config.maxSpeed).withStyle(ChatFormatting.WHITE)).append("\n")
                                 .append(Component.literal("- acceleration=" + config.acceleration).withStyle(ChatFormatting.WHITE)).append("\n")
@@ -390,17 +382,17 @@ public class FreeCamController {
     }
 
     private void printInfo(String message) {
-        mc.gui.handleSystemChat(chatType, chatPrefix.copy()
+        printSystemMessage(chatPrefix.copy()
                 .append(Component.literal(message).withStyle(ChatFormatting.GOLD)));
     }
 
     private void printError(String message) {
-        mc.gui.handleSystemChat(chatType, chatPrefix.copy()
+        printSystemMessage(chatPrefix.copy()
                 .append(Component.literal(message).withStyle(ChatFormatting.RED)));
     }
 
     private void printHelp() {
-        mc.gui.handleSystemChat(chatType, chatPrefix.copy()
+        printSystemMessage(chatPrefix.copy()
                 .append(Component.literal("Invalid syntax").withStyle(ChatFormatting.RED)).append("\n")
                 .append(Component.literal("- ").withStyle(ChatFormatting.WHITE))
                         .append(Component.literal(".freecam maxspeed 50").withStyle(ChatFormatting.YELLOW))
@@ -423,5 +415,9 @@ public class FreeCamController {
                 .append(Component.literal("- ").withStyle(ChatFormatting.WHITE))
                     .append(Component.literal(".freecam hands 1").withStyle(ChatFormatting.YELLOW))
                     .append(Component.literal(" render hands while in freecam. Values: 0/1.").withStyle(ChatFormatting.WHITE)));
+    }
+
+    private void printSystemMessage(Component component) {
+        mc.getChatListener().handleSystemMessage(component, false);
     }
 }
