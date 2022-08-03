@@ -15,7 +15,6 @@ import net.minecraft.util.Util;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.*;
-import net.minecraft.util.registry.DynamicRegistryManager;
 import net.minecraft.util.registry.Registry;
 
 import java.util.List;
@@ -43,11 +42,9 @@ public class FreeCamController {
     private long lastTime;
     private boolean insideRenderDebugHud;
     private MutableText chatPrefix = Text.literal("[freecam]").formatted(Formatting.GREEN).append(" ");
-    private MessageType chatType;
 
     private FreeCamController() {
-        Registry<MessageType> registry = DynamicRegistryManager.BUILTIN.get().get(Registry.MESSAGE_TYPE_KEY);
-        chatType = registry.get(MessageType.SYSTEM);
+
     }
 
     public boolean isActive() {
@@ -150,7 +147,7 @@ public class FreeCamController {
             switch (parts.length) {
                 case 1:
                     if (parts[0].equals(".freecam")) {
-                        mc.inGameHud.onGameMessage(chatType, chatPrefix.copy()
+                        printSystemMessage(chatPrefix.copy()
                                 .append(Text.literal("Current settings").formatted(Formatting.YELLOW)).append("\n")
                                 .append(Text.literal("- maxspeed=" + config.maxSpeed).formatted(Formatting.WHITE)).append("\n")
                                 .append(Text.literal("- acceleration=" + config.acceleration).formatted(Formatting.WHITE)).append("\n")
@@ -383,17 +380,17 @@ public class FreeCamController {
     }
 
     private void printInfo(String message) {
-        mc.inGameHud.onGameMessage(chatType, chatPrefix.copy()
+        printSystemMessage(chatPrefix.copy()
                 .append(Text.literal(message).formatted(Formatting.GOLD)));
     }
 
     private void printError(String message) {
-        mc.inGameHud.onGameMessage(chatType, chatPrefix.copy()
+        printSystemMessage(chatPrefix.copy()
                 .append(Text.literal(message).formatted(Formatting.RED)));
     }
 
     private void printHelp() {
-        mc.inGameHud.onGameMessage(chatType, chatPrefix.copy()
+        printSystemMessage(chatPrefix.copy()
                 .append(Text.literal("Invalid syntax").formatted(Formatting.RED)).append("\n")
                 .append(Text.literal("- ").formatted(Formatting.WHITE))
                 .append(Text.literal(".freecam maxspeed 50").formatted(Formatting.YELLOW))
@@ -416,5 +413,9 @@ public class FreeCamController {
                 .append(Text.literal("- ").formatted(Formatting.WHITE))
                 .append(Text.literal(".freecam hands 1").formatted(Formatting.YELLOW))
                 .append(Text.literal(" render hands while in freecam. Values: 0/1.").formatted(Formatting.WHITE)));
+    }
+
+    private void printSystemMessage(Text component) {
+        mc.getMessageHandler().onGameMessage(component, false);
     }
 }
