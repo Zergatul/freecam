@@ -6,16 +6,15 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.input.Input;
 import net.minecraft.client.option.Perspective;
 import net.minecraft.entity.Entity;
-import net.minecraft.network.message.MessageType;
+import net.minecraft.network.MessageType;
 import net.minecraft.state.property.Property;
+import net.minecraft.text.LiteralText;
 import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Util;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.*;
-import net.minecraft.util.registry.DynamicRegistryManager;
 import net.minecraft.util.registry.Registry;
 
 import java.util.List;
@@ -42,12 +41,11 @@ public class FreeCamController {
     private double upVelocity;
     private long lastTime;
     private boolean insideRenderDebugHud;
-    private MutableText chatPrefix = Text.literal("[freecam]").formatted(Formatting.GREEN).append(" ");
-    private MessageType chatType;
+    private MutableText chatPrefix = new LiteralText("[freecam]").formatted(Formatting.GREEN).append(" ");
+    private MessageType chatType = MessageType.SYSTEM;
 
     private FreeCamController() {
-        Registry<MessageType> registry = DynamicRegistryManager.BUILTIN.get().get(Registry.MESSAGE_TYPE_KEY);
-        chatType = registry.get(MessageType.SYSTEM);
+
     }
 
     public boolean isActive() {
@@ -150,12 +148,13 @@ public class FreeCamController {
             switch (parts.length) {
                 case 1:
                     if (parts[0].equals(".freecam")) {
-                        mc.inGameHud.onGameMessage(chatType, chatPrefix.copy()
-                                .append(Text.literal("Current settings").formatted(Formatting.YELLOW)).append("\n")
-                                .append(Text.literal("- maxspeed=" + config.maxSpeed).formatted(Formatting.WHITE)).append("\n")
-                                .append(Text.literal("- acceleration=" + config.acceleration).formatted(Formatting.WHITE)).append("\n")
-                                .append(Text.literal("- slowdown=" + config.slowdownFactor).formatted(Formatting.WHITE)).append("\n")
-                                .append(Text.literal("- hands=" + (config.renderHands ? 1 : 0)).formatted(Formatting.WHITE)));
+                        mc.inGameHud.addChatMessage(chatType, chatPrefix.shallowCopy()
+                                .append(new LiteralText("Current settings").formatted(Formatting.YELLOW)).append("\n")
+                                .append(new LiteralText("- maxspeed=" + config.maxSpeed).formatted(Formatting.WHITE)).append("\n")
+                                .append(new LiteralText("- acceleration=" + config.acceleration).formatted(Formatting.WHITE)).append("\n")
+                                .append(new LiteralText("- slowdown=" + config.slowdownFactor).formatted(Formatting.WHITE)).append("\n")
+                                .append(new LiteralText("- hands=" + (config.renderHands ? 1 : 0)).formatted(Formatting.WHITE)),
+                                Util.NIL_UUID);
                     } else {
                         printHelp();
                     }
@@ -288,7 +287,7 @@ public class FreeCamController {
             while (mc.options.togglePerspectiveKey.wasPressed()) {
                 // consume clicks
             }
-            oldInput.tick(false, 0);
+            oldInput.tick(false);
         }
     }
 
@@ -383,38 +382,41 @@ public class FreeCamController {
     }
 
     private void printInfo(String message) {
-        mc.inGameHud.onGameMessage(chatType, chatPrefix.copy()
-                .append(Text.literal(message).formatted(Formatting.GOLD)));
+        mc.inGameHud.addChatMessage(chatType, chatPrefix.shallowCopy()
+                .append(new LiteralText(message).formatted(Formatting.GOLD)),
+                Util.NIL_UUID);
     }
 
     private void printError(String message) {
-        mc.inGameHud.onGameMessage(chatType, chatPrefix.copy()
-                .append(Text.literal(message).formatted(Formatting.RED)));
+        mc.inGameHud.addChatMessage(chatType, chatPrefix.shallowCopy()
+                .append(new LiteralText(message).formatted(Formatting.RED)),
+                Util.NIL_UUID);
     }
 
     private void printHelp() {
-        mc.inGameHud.onGameMessage(chatType, chatPrefix.copy()
-                .append(Text.literal("Invalid syntax").formatted(Formatting.RED)).append("\n")
-                .append(Text.literal("- ").formatted(Formatting.WHITE))
-                .append(Text.literal(".freecam maxspeed 50").formatted(Formatting.YELLOW))
-                .append(Text.literal(" set maximum speed, blocks/second").formatted(Formatting.WHITE))
+        mc.inGameHud.addChatMessage(chatType, chatPrefix.shallowCopy()
+                .append(new LiteralText("Invalid syntax").formatted(Formatting.RED)).append("\n")
+                .append(new LiteralText("- ").formatted(Formatting.WHITE))
+                .append(new LiteralText(".freecam maxspeed 50").formatted(Formatting.YELLOW))
+                .append(new LiteralText(" set maximum speed, blocks/second").formatted(Formatting.WHITE))
                 .append("\n")
-                .append(Text.literal(" (synonyms: max, speed, s)").formatted(Formatting.AQUA))
+                .append(new LiteralText(" (synonyms: max, speed, s)").formatted(Formatting.AQUA))
                 .append("\n")
-                .append(Text.literal("- ").formatted(Formatting.WHITE))
-                .append(Text.literal(".freecam acceleration 50").formatted(Formatting.YELLOW))
-                .append(Text.literal(" set acceleration speed, blocks/second^2").formatted(Formatting.WHITE))
+                .append(new LiteralText("- ").formatted(Formatting.WHITE))
+                .append(new LiteralText(".freecam acceleration 50").formatted(Formatting.YELLOW))
+                .append(new LiteralText(" set acceleration speed, blocks/second^2").formatted(Formatting.WHITE))
                 .append("\n")
-                .append(Text.literal(" (synonyms: acc, a)").formatted(Formatting.AQUA))
+                .append(new LiteralText(" (synonyms: acc, a)").formatted(Formatting.AQUA))
                 .append("\n")
-                .append(Text.literal("- ").formatted(Formatting.WHITE))
-                .append(Text.literal(".freecam slowdown 0.01").formatted(Formatting.YELLOW))
-                .append(Text.literal(" set slow down speed. When no keys is pressed speed is multiplied by this value every second.").formatted(Formatting.WHITE))
+                .append(new LiteralText("- ").formatted(Formatting.WHITE))
+                .append(new LiteralText(".freecam slowdown 0.01").formatted(Formatting.YELLOW))
+                .append(new LiteralText(" set slow down speed. When no keys is pressed speed is multiplied by this value every second.").formatted(Formatting.WHITE))
                 .append("\n")
-                .append(Text.literal(" (synonyms: slow, sd)").formatted(Formatting.AQUA))
+                .append(new LiteralText(" (synonyms: slow, sd)").formatted(Formatting.AQUA))
                 .append("\n")
-                .append(Text.literal("- ").formatted(Formatting.WHITE))
-                .append(Text.literal(".freecam hands 1").formatted(Formatting.YELLOW))
-                .append(Text.literal(" render hands while in freecam. Values: 0/1.").formatted(Formatting.WHITE)));
+                .append(new LiteralText("- ").formatted(Formatting.WHITE))
+                .append(new LiteralText(".freecam hands 1").formatted(Formatting.YELLOW))
+                .append(new LiteralText(" render hands while in freecam. Values: 0/1.").formatted(Formatting.WHITE)),
+                Util.NIL_UUID);
     }
 }

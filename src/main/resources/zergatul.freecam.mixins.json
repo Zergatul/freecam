@@ -7,7 +7,6 @@
   ],
   "client": [
     "MixinCamera",
-    "MixinClientPlayerEntity",
     "MixinDebugHud",
     "MixinEntity",
     "MixinGameRenderer",
@@ -16,6 +15,7 @@
     "MixinMinecraftClient",
     "MixinMouse",
     "MixinPerspective",
+    "MixinScreen",
     "MixinWorldRenderer"
   ],
   "injectors": {
