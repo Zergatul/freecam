@@ -6,6 +6,7 @@ import com.zergatul.freecam.helpers.MixinGameRendererHelper;
 import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
 import net.minecraft.client.CameraType;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.Input;
 import net.minecraft.core.BlockPos;
@@ -154,7 +155,8 @@ public class FreeCamController {
                                 .append(Component.literal("- maxspeed=" + config.maxSpeed).withStyle(ChatFormatting.WHITE)).append("\n")
                                 .append(Component.literal("- acceleration=" + config.acceleration).withStyle(ChatFormatting.WHITE)).append("\n")
                                 .append(Component.literal("- slowdown=" + config.slowdownFactor).withStyle(ChatFormatting.WHITE)).append("\n")
-                                .append(Component.literal("- hands=" + (config.renderHands ? 1 : 0)).withStyle(ChatFormatting.WHITE)));
+                                .append(Component.literal("- hands=" + (config.renderHands ? 1 : 0)).withStyle(ChatFormatting.WHITE)).append("\n")
+                                .append(Component.literal("- interactions=" + (!config.disableInteractions ? 1 : 0)).withStyle(ChatFormatting.WHITE)));
                     } else {
                         printHelp();
                     }
@@ -211,6 +213,19 @@ public class FreeCamController {
                                     saveConfig();
                                 } else if (value == 1) {
                                     config.renderHands = true;
+                                    saveConfig();
+                                } else {
+                                    printError("Invalid value. Only 0 or 1 accepted.");
+                                }
+                                break;
+
+                            case "interactions":
+                            case "ia":
+                                if (value == 0) {
+                                    config.disableInteractions = true;
+                                    saveConfig();
+                                } else if (value == 1) {
+                                    config.disableInteractions = false;
                                     saveConfig();
                                 } else {
                                     printError("Invalid value. Only 0 or 1 accepted.");
@@ -284,8 +299,10 @@ public class FreeCamController {
 
     public void onClientTickStart() {
         if (active) {
-            while (mc.options.keyTogglePerspective.consumeClick()) {
-                // consume clicks
+            disableKey(mc.options.keyTogglePerspective);
+            if (config.disableInteractions) {
+                disableKey(mc.options.keyUse);
+                disableKey(mc.options.keyAttack);
             }
             oldInput.tick(false, 0);
         }
@@ -381,6 +398,11 @@ public class FreeCamController {
         printInfo("Config updated");
     }
 
+    private void disableKey(KeyMapping key) {
+        while (key.consumeClick()) {}
+        key.setDown(false);
+    }
+
     private void printInfo(String message) {
         printSystemMessage(chatPrefix.copy()
                 .append(Component.literal(message).withStyle(ChatFormatting.GOLD)));
@@ -414,7 +436,13 @@ public class FreeCamController {
                     .append("\n")
                 .append(Component.literal("- ").withStyle(ChatFormatting.WHITE))
                     .append(Component.literal(".freecam hands 1").withStyle(ChatFormatting.YELLOW))
-                    .append(Component.literal(" render hands while in freecam. Values: 0/1.").withStyle(ChatFormatting.WHITE)));
+                    .append(Component.literal(" render hands while in freecam. Values: 0/1.").withStyle(ChatFormatting.WHITE))
+                    .append("\n")
+                .append(Component.literal("- ").withStyle(ChatFormatting.WHITE))
+                    .append(Component.literal(".freecam interactions 0").withStyle(ChatFormatting.YELLOW))
+                    .append(Component.literal(" enable interactions (left/right mouse clicks) while in freecam. Values: 0/1.").withStyle(ChatFormatting.WHITE))
+                    .append("\n")
+                    .append(Component.literal(" (synonyms: ia)").withStyle(ChatFormatting.AQUA)));
     }
 
     private void printSystemMessage(Component component) {

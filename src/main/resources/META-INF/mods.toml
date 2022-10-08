@@ -25,7 +25,7 @@ displayName="FreeCam by Zergatul" #mandatory
 # A URL to query for updates for this mod. See the JSON update specification https://mcforge.readthedocs.io/en/latest/gettingstarted/autoupdate/
 #updateJSONURL="https://change.me.example.invalid/updates.json" #optional
 # A URL for the "homepage" for this mod, displayed in the mod UI
-displayURL="https://github.com/Zergatul/freecam" #optional
+displayURL="https://www.curseforge.com/minecraft/mc-mods/freecam-by-zergatul" #optional
 # A file name (in the root of the mod JAR) containing a logo for display
 #logoFile="examplemod.png" #optional
 # A text field displayed in the mod UI
@@ -41,7 +41,17 @@ authors="Zergatul" #optional
 #displayTest="MATCH_VERSION" # MATCH_VERSION is the default if nothing is specified (#optional)
 
 # The description text for the mod (multi line!) (#mandatory)
-description="Use F6 to toggle FreeCam, or change key bind in the settings."
+description='''
+Use F6 to toggle FreeCam, or change key bind in the settings.
+
+You can control mod settings from in-game chat:
+.freecam - displays current settings
+.freecam speed 100 - set maximum speed, blocks/second (default 50)
+.freecam acc 100 - set acceleration, blocks/second^2 (default 50)
+.freecam slow 0.001 - set slowdown speed when you release all buttons. Every second speed is multiplied by this value (default 0.01)
+.freecam hands 1 - show hands while in freecam (default 0)
+.freecam ia 0 - disable interactions with blocks/entities while in freecam (default 1)
+'''
 # A dependency - use the . to indicate dependency for a specific modid. Dependencies are optional.
 [[dependencies.zergatul.freecam]] #optional
     # the modid of the dependency
