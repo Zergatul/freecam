@@ -4,6 +4,7 @@ import com.zergatul.freecam.helpers.MixinGameRendererHelper;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.input.Input;
+import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.option.Perspective;
 import net.minecraft.entity.Entity;
 import net.minecraft.network.message.MessageType;
@@ -152,7 +153,8 @@ public class FreeCamController {
                                 .append(Text.literal("- maxspeed=" + config.maxSpeed).formatted(Formatting.WHITE)).append("\n")
                                 .append(Text.literal("- acceleration=" + config.acceleration).formatted(Formatting.WHITE)).append("\n")
                                 .append(Text.literal("- slowdown=" + config.slowdownFactor).formatted(Formatting.WHITE)).append("\n")
-                                .append(Text.literal("- hands=" + (config.renderHands ? 1 : 0)).formatted(Formatting.WHITE)));
+                                .append(Text.literal("- hands=" + (config.renderHands ? 1 : 0)).formatted(Formatting.WHITE)).append("\n")
+                                .append(Text.literal("- interactions=" + (!config.disableInteractions ? 1 : 0)).formatted(Formatting.WHITE)));
                     } else {
                         printHelp();
                     }
@@ -209,6 +211,19 @@ public class FreeCamController {
                                     saveConfig();
                                 } else if (value == 1) {
                                     config.renderHands = true;
+                                    saveConfig();
+                                } else {
+                                    printError("Invalid value. Only 0 or 1 accepted.");
+                                }
+                                break;
+
+                            case "interactions":
+                            case "ia":
+                                if (value == 0) {
+                                    config.disableInteractions = true;
+                                    saveConfig();
+                                } else if (value == 1) {
+                                    config.disableInteractions = false;
                                     saveConfig();
                                 } else {
                                     printError("Invalid value. Only 0 or 1 accepted.");
@@ -282,8 +297,10 @@ public class FreeCamController {
 
     public void onClientTickStart() {
         if (active) {
-            while (mc.options.togglePerspectiveKey.wasPressed()) {
-                // consume clicks
+            disableKey(mc.options.togglePerspectiveKey);
+            if (config.disableInteractions) {
+                disableKey(mc.options.useKey);
+                disableKey(mc.options.attackKey);
             }
             oldInput.tick(false, 0);
         }
@@ -379,6 +396,11 @@ public class FreeCamController {
         printInfo("Config updated");
     }
 
+    private void disableKey(KeyBinding key) {
+        while (key.wasPressed()) {}
+        key.setPressed(false);
+    }
+
     private void printInfo(String message) {
         printSystemMessage(chatPrefix.copy()
                 .append(Text.literal(message).formatted(Formatting.GOLD)));
@@ -412,7 +434,12 @@ public class FreeCamController {
                 .append("\n")
                 .append(Text.literal("- ").formatted(Formatting.WHITE))
                 .append(Text.literal(".freecam hands 1").formatted(Formatting.YELLOW))
-                .append(Text.literal(" render hands while in freecam. Values: 0/1.").formatted(Formatting.WHITE)));
+                .append(Text.literal(" render hands while in freecam. Values: 0/1.").formatted(Formatting.WHITE)).append("\n")
+                .append(Text.literal("- ").formatted(Formatting.WHITE))
+                .append(Text.literal(".freecam interactions 0").formatted(Formatting.YELLOW))
+                .append(Text.literal(" enable interactions (left/right mouse clicks) while in freecam. Values: 0/1.").formatted(Formatting.WHITE))
+                .append("\n")
+                .append(Text.literal(" (synonyms: ia)").formatted(Formatting.AQUA)));
     }
 
     private void printSystemMessage(Text component) {
