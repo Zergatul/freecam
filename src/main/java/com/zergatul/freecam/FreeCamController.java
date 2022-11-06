@@ -36,7 +36,8 @@ public class FreeCamController {
     private FreeCamConfig config = ConfigStore.instance.load();
     private boolean active;
     private CameraType oldCameraType;
-    private Input oldInput;
+    private Input playerInput;
+    private Input freecamInput;
     private double x, y, z;
     private float yRot, xRot;
     private double forwardVelocity;
@@ -44,6 +45,8 @@ public class FreeCamController {
     private double upVelocity;
     private long lastTime;
     private boolean insideRenderDebug;
+    private boolean cameraControlActive;
+    private boolean eyeLock;
     private MutableComponent chatPrefix = Component.literal("[freecam]").withStyle(ChatFormatting.GREEN).append(" ");
 
     private FreeCamController() {
@@ -82,12 +85,31 @@ public class FreeCamController {
         }
     }
 
+    public void toggleCameraControl() {
+        if (active) {
+            cameraControlActive = !cameraControlActive;
+            if (cameraControlActive) {
+                mc.player.input = freecamInput;
+            } else {
+                mc.player.input = playerInput;
+            }
+        }
+    }
+
+    public void toggleEyeLock() {
+        if (active) {
+            eyeLock = !eyeLock;
+        }
+    }
+
     public void enable() {
         if (!active) {
             active = true;
+            cameraControlActive = true;
+            eyeLock = false;
             oldCameraType = mc.options.getCameraType();
-            oldInput = mc.player.input;
-            mc.player.input = new Input();
+            playerInput = mc.player.input;
+            mc.player.input = freecamInput = new Input();
             mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
             if (oldCameraType.isFirstPerson() != mc.options.getCameraType().isFirstPerson()) {
                 mc.gameRenderer.checkEntityPostEffect(mc.options.getCameraType().isFirstPerson() ? mc.getCameraEntity() : null);
@@ -120,7 +142,7 @@ public class FreeCamController {
             active = false;
             CameraType cameraType = mc.options.getCameraType();
             mc.options.setCameraType(oldCameraType);
-            mc.player.input = oldInput;
+            mc.player.input = playerInput;
             if (cameraType.isFirstPerson() != mc.options.getCameraType().isFirstPerson()) {
                 mc.gameRenderer.checkEntityPostEffect(mc.options.getCameraType().isFirstPerson() ? mc.getCameraEntity() : null);
             }
@@ -137,6 +159,12 @@ public class FreeCamController {
         }
         if (KeyBindingsController.toggleFreeCam.isDown()) {
             toggle();
+        }
+        if (KeyBindingsController.toggleCamControl.isDown()) {
+            toggleCameraControl();
+        }
+        if (KeyBindingsController.toggleEyeLock.isDown()) {
+            toggleEyeLock();
         }
     }
 
@@ -249,10 +277,12 @@ public class FreeCamController {
     }
 
     public void onMouseTurn(double yRot, double xRot) {
-        this.xRot += (float)xRot * 0.15F;
-        this.yRot += (float)yRot * 0.15F;
-        this.xRot = Mth.clamp(this.xRot, -90, 90);
-        calculateVectors();
+        if (!eyeLock) {
+            this.xRot += (float) xRot * 0.15F;
+            this.yRot += (float) yRot * 0.15F;
+            this.xRot = Mth.clamp(this.xRot, -90, 90);
+            calculateVectors();
+        }
     }
 
     public void onRenderTickStart() {
@@ -266,10 +296,10 @@ public class FreeCamController {
             float frameTime = (currTime - lastTime) / 1e9f;
             lastTime = currTime;
 
-            Input input = oldInput;
-            float forwardImpulse = (input.up ? 1 : 0) + (input.down ? -1 : 0);
-            float leftImpulse = (input.left ? 1 : 0) + (input.right ? -1 : 0);
-            float upImpulse = ((input.jumping ? 1 : 0) + (input.shiftKeyDown ? -1 : 0));
+            Input input = playerInput;
+            float forwardImpulse = cameraControlActive ? (input.up ? 1 : 0) + (input.down ? -1 : 0) : 0;
+            float leftImpulse = cameraControlActive ? (input.left ? 1 : 0) + (input.right ? -1 : 0) : 0;
+            float upImpulse = cameraControlActive ? ((input.jumping ? 1 : 0) + (input.shiftKeyDown ? -1 : 0)) : 0;
             double slowdown = Math.pow(config.slowdownFactor, frameTime);
             forwardVelocity = combineMovement(forwardVelocity, forwardImpulse, frameTime, config.acceleration, slowdown);
             leftVelocity = combineMovement(leftVelocity, leftImpulse, frameTime, config.acceleration, slowdown);
@@ -294,6 +324,8 @@ public class FreeCamController {
             x += dx;
             y += dy;
             z += dz;
+
+            applyEyeLock();
         }
     }
 
@@ -304,7 +336,7 @@ public class FreeCamController {
                 disableKey(mc.options.keyUse);
                 disableKey(mc.options.keyAttack);
             }
-            oldInput.tick(false, 0);
+            playerInput.tick(false, 0);
         }
     }
 
@@ -350,7 +382,28 @@ public class FreeCamController {
     }
 
     public boolean shouldRenderHands() {
-        return config.renderHands;
+        return config.renderHands && cameraControlActive && !eyeLock;
+    }
+
+    public boolean shouldRenderCrosshair() {
+        return active && cameraControlActive && !eyeLock;
+    }
+
+    private void applyEyeLock() {
+        if (eyeLock) {
+            float frameTime = mc.getFrameTime();
+            Entity entity = mc.getCameraEntity();
+            double xe = Mth.lerp(frameTime, entity.xo, entity.getX());
+            double ye = Mth.lerp(frameTime, entity.yo, entity.getY()) + entity.getEyeHeight();
+            double ze = Mth.lerp(frameTime, entity.zo, entity.getZ());
+            double dx = x - xe;
+            double dy = y - ye;
+            double dz = z - ze;
+            this.xRot = (float) (Math.atan2(dy, Math.sqrt(dx * dx + dz * dz)) / Math.PI * 180);
+            this.yRot = (float) (Math.atan2(dz, dx) / Math.PI * 180 + 90);
+            this.xRot = Mth.clamp(this.xRot, -90, 90);
+            calculateVectors();
+        }
     }
 
     private void calculateVectors() {

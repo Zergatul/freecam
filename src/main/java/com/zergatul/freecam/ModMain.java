@@ -20,5 +20,7 @@ public class ModMain {
 
     private void setupKeybindings(final RegisterKeyMappingsEvent event) {
         event.register(KeyBindingsController.toggleFreeCam);
+        event.register(KeyBindingsController.toggleCamControl);
+        event.register(KeyBindingsController.toggleEyeLock);
     }
 }
