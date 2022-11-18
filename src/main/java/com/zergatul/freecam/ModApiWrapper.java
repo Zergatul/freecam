@@ -1,7 +1,6 @@
 package com.zergatul.freecam;
 
 import net.minecraftforge.client.event.ClientChatEvent;
-import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.level.LevelEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -12,11 +11,6 @@ public class ModApiWrapper {
 
     private ModApiWrapper() {
 
-    }
-
-    @SubscribeEvent
-    public void onKeyInputEvent(InputEvent.Key event) {
-        FreeCamController.instance.onKeyInput();
     }
 
     @SubscribeEvent

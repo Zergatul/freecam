@@ -150,20 +150,20 @@ public class FreeCamController {
         }
     }
 
-    public void onKeyInput() {
+    public void onHandleKeyBindings() {
         if (mc.player == null) {
             return;
         }
         if (mc.screen != null) {
             return;
         }
-        if (KeyBindingsController.toggleFreeCam.isDown()) {
+        while (KeyBindingsController.toggleFreeCam.consumeClick()) {
             toggle();
         }
-        if (KeyBindingsController.toggleCamControl.isDown()) {
+        while (KeyBindingsController.toggleCamControl.consumeClick()) {
             toggleCameraControl();
         }
-        if (KeyBindingsController.toggleEyeLock.isDown()) {
+        while (KeyBindingsController.toggleEyeLock.consumeClick()) {
             toggleEyeLock();
         }
     }
