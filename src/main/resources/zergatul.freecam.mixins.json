@@ -12,7 +12,6 @@
     "MixinEntity",
     "MixinGameRenderer",
     "MixinInGameHud",
-    "MixinKeyboard",
     "MixinMinecraftClient",
     "MixinMouse",
     "MixinPerspective",

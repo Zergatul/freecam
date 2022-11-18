@@ -126,14 +126,14 @@ public class FreeCamController {
         }
     }
 
-    public void onKeyInput() {
+    public void onHandleKeyBindings() {
         if (mc.player == null) {
             return;
         }
         if (mc.currentScreen != null) {
             return;
         }
-        if (KeyBindingsController.instance.getKeyBinding().isPressed()) {
+        while (KeyBindingsController.instance.getKeyBinding().wasPressed()) {
             toggle();
         }
     }

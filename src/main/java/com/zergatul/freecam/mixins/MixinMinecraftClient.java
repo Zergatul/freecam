@@ -31,4 +31,9 @@ public abstract class MixinMinecraftClient {
     private void onBeforeRender(boolean tick, CallbackInfo info) {
         FreeCamController.instance.onRenderTickStart();
     }
+
+    @Inject(at = @At("TAIL"), method = "Lnet/minecraft/client/MinecraftClient;handleInputEvents()V")
+    private void onHandleInputEvents(CallbackInfo info) {
+        FreeCamController.instance.onHandleKeyBindings();
+    }
 }
