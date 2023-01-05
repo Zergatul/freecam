@@ -7,7 +7,7 @@ import net.minecraft.client.input.Input;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.option.Perspective;
 import net.minecraft.entity.Entity;
-import net.minecraft.network.message.MessageType;
+import net.minecraft.registry.Registries;
 import net.minecraft.state.property.Property;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
@@ -16,7 +16,8 @@ import net.minecraft.util.Util;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.*;
-import net.minecraft.util.registry.Registry;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 import java.util.List;
 import java.util.Locale;
@@ -27,10 +28,10 @@ public class FreeCamController {
     public static final FreeCamController instance = new FreeCamController();
 
     private final MinecraftClient mc = MinecraftClient.getInstance();
-    private final Quaternion rotation = new Quaternion(0.0F, 0.0F, 0.0F, 1.0F);
-    private final Vec3f forwards = new Vec3f(0.0F, 0.0F, 1.0F);
-    private final Vec3f up = new Vec3f(0.0F, 1.0F, 0.0F);
-    private final Vec3f left = new Vec3f(1.0F, 0.0F, 0.0F);
+    private final Quaternionf rotation = new Quaternionf(0.0F, 0.0F, 0.0F, 1.0F);
+    private final Vector3f forwards = new Vector3f(0.0F, 0.0F, 1.0F);
+    private final Vector3f up = new Vector3f(0.0F, 1.0F, 0.0F);
+    private final Vector3f left = new Vector3f(1.0F, 0.0F, 0.0F);
     private FreeCamConfig config = ConfigStore.instance.load();
     private boolean active;
     private Perspective oldPerspective;
@@ -102,9 +103,9 @@ public class FreeCamController {
             calculateVectors();
 
             double distance = -2;
-            x += (double)this.forwards.getX() * distance;
-            y += (double)this.forwards.getY() * distance;
-            z += (double)this.forwards.getZ() * distance;
+            x += (double)this.forwards.x() * distance;
+            y += (double)this.forwards.y() * distance;
+            z += (double)this.forwards.z() * distance;
 
             forwardVelocity = 0;
             leftVelocity = 0;
@@ -273,9 +274,9 @@ public class FreeCamController {
             leftVelocity = combineMovement(leftVelocity, leftImpulse, frameTime, config.acceleration, slowdown);
             upVelocity = combineMovement(upVelocity, upImpulse, frameTime, config.acceleration, slowdown);
 
-            double dx = (double) this.forwards.getX() * forwardVelocity + (double) this.left.getX() * leftVelocity;
-            double dy = (double) this.forwards.getY() * forwardVelocity + upVelocity + (double) this.left.getY() * leftVelocity;
-            double dz = (double) this.forwards.getZ() * forwardVelocity + (double) this.left.getZ() * leftVelocity;
+            double dx = (double) this.forwards.x() * forwardVelocity + (double) this.left.x() * leftVelocity;
+            double dy = (double) this.forwards.y() * forwardVelocity + upVelocity + (double) this.left.y() * leftVelocity;
+            double dz = (double) this.forwards.z() * forwardVelocity + (double) this.left.z() * leftVelocity;
             dx *= frameTime;
             dy *= frameTime;
             dz *= frameTime;
@@ -328,7 +329,7 @@ public class FreeCamController {
                     BlockState state = mc.world.getBlockState(pos);
                     list.add("");
                     list.add(Formatting.UNDERLINE + "Free Cam Targeted Block: " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ());
-                    list.add(String.valueOf(Registry.BLOCK.getId(state.getBlock())));
+                    list.add(String.valueOf(Registries.BLOCK.getId(state.getBlock())));
 
                     for (var entry: state.getEntries().entrySet()) {
                         list.add(propertyToString(entry));
@@ -352,15 +353,10 @@ public class FreeCamController {
     }
 
     private void calculateVectors() {
-        rotation.set(0.0F, 0.0F, 0.0F, 1.0F);
-        rotation.hamiltonProduct(Vec3f.POSITIVE_Y.getDegreesQuaternion(-yaw));
-        rotation.hamiltonProduct(Vec3f.POSITIVE_X.getDegreesQuaternion(pitch));
-        forwards.set(0.0F, 0.0F, 1.0F);
-        forwards.rotate(rotation);
-        up.set(0.0F, 1.0F, 0.0F);
-        up.rotate(rotation);
-        left.set(1.0F, 0.0F, 0.0F);
-        left.rotate(rotation);
+        rotation.rotationYXZ(-yaw * ((float)Math.PI / 180F), pitch * ((float)Math.PI / 180F), 0.0F);
+        forwards.set(0.0F, 0.0F, 1.0F).rotate(rotation);
+        up.set(0.0F, 1.0F, 0.0F).rotate(rotation);
+        left.set(1.0F, 0.0F, 0.0F).rotate(rotation);
     }
 
     private double combineMovement(double velocity, double impulse, double frameTime, double acceleration, double slowdown) {
