@@ -18,7 +18,7 @@ public abstract class MixinPointOfView {
             MixinGameRendererHelper.insideRenderItemInHand = false;
             return;
         }
-        if (MixinGuiHelper.insideRenderCrosshair) {
+        if (MixinGuiHelper.insideRenderCrosshair && FreeCamController.instance.shouldRenderCrosshair()) {
             info.setReturnValue(true);
             info.cancel();
             return;

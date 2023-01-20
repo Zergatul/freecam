@@ -15,7 +15,7 @@ apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 apply plugin: 'org.spongepowered.mixin'
 
-version = '1.2.0'
+version = '1.4.0'
 group = 'com.zergatul.freecam'
 archivesBaseName = 'zergatul.freecam'
 
@@ -44,6 +44,7 @@ minecraft {
     runs {
         client {
             workingDirectory project.file('run')
+            arg "-mixin.config=zergatul.freecam.mixin.json"
 
             // Recommended logging data for a userdev environment
             // The markers can be changed as needed.
