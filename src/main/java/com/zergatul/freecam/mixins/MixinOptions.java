@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(Options.class)
 public abstract class MixinOptions {
 
-    @Inject(at = @At("HEAD"), method = "Lnet/minecraft/client/Options;bobView()Lnet/minecraft/client/OptionInstance;", cancellable = true)
+    @Inject(at = @At("HEAD"), method = "bobView()Lnet/minecraft/client/OptionInstance;", cancellable = true)
     private void onBobView(CallbackInfoReturnable<OptionInstance<Boolean>> info) {
         if (FreeCamController.instance.isActive()) {
             info.setReturnValue(OptionInstance.createBoolean("", false));

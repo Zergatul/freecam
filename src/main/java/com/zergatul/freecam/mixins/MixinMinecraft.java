@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(Minecraft.class)
 public abstract class MixinMinecraft {
 
-    @Inject(at = @At("TAIL"), method = "Lnet/minecraft/client/Minecraft;handleKeybinds()V")
+    @Inject(at = @At("TAIL"), method = "handleKeybinds()V")
     private void onHandleKeyBindings(CallbackInfo info) {
         FreeCamController.instance.onHandleKeyBindings();
     }

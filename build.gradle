@@ -16,7 +16,7 @@ plugins {
 apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'org.spongepowered.mixin'
 
-version = '1.4.1'
+version = '1.5.0'
 group = 'com.zergatul.freecam'
 archivesBaseName = 'zergatul.freecam'
 

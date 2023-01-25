@@ -1,8 +1,6 @@
 package com.zergatul.freecam.mixins;
 
 import com.zergatul.freecam.FreeCamController;
-import com.zergatul.freecam.helpers.MixinGameRendererHelper;
-import com.zergatul.freecam.helpers.MixinMouseHandlerHelper;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
@@ -10,7 +8,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(Entity.class)
@@ -19,42 +16,19 @@ public abstract class MixinEntity {
     @Shadow(aliases = "Lnet/minecraft/world/entity/Entity;calculateViewVector(FF)Lnet/minecraft/world/phys/Vec3;")
     protected abstract Vec3 calculateViewVector(float p_20172_, float p_20173_);
 
-    @Inject(at = @At("HEAD"), method = "Lnet/minecraft/world/entity/Entity;turn(DD)V", cancellable = true)
-    private void onTurn(double yRot, double xRot, CallbackInfo info) {
-        if (!MixinMouseHandlerHelper.insideTurnPlayer) {
-            return;
-        }
-        if (!FreeCamController.instance.isActive()) {
-            return;
-        }
-        var entity = (Entity) (Object) this;
-        if (entity instanceof LocalPlayer) {
-            FreeCamController.instance.onMouseTurn(yRot, xRot);
-            info.cancel();
-        }
-    }
-
-    @Inject(at = @At("HEAD"), method = "Lnet/minecraft/world/entity/Entity;getEyePosition(F)Lnet/minecraft/world/phys/Vec3;", cancellable = true)
+    @Inject(at = @At("HEAD"), method = "getEyePosition(F)Lnet/minecraft/world/phys/Vec3;", cancellable = true)
     private void onGetEyePosition(float p_20300_, CallbackInfoReturnable<Vec3> info) {
         FreeCamController freeCam = FreeCamController.instance;
-        if (freeCam.isActive() && freeCam.shouldOverridePlayerPosition()) {
-            var entity = (Entity) (Object) this;
-            if (entity instanceof LocalPlayer) {
-                info.setReturnValue(new Vec3(freeCam.getX(), freeCam.getY(), freeCam.getZ()));
-                info.cancel();
-            }
+        if (freeCam.shouldOverrideCameraEntityPosition((Entity) (Object) this)) {
+            info.setReturnValue(new Vec3(freeCam.getX(), freeCam.getY(), freeCam.getZ()));
         }
     }
 
-    @Inject(at = @At("HEAD"), method = "Lnet/minecraft/world/entity/Entity;getViewVector(F)Lnet/minecraft/world/phys/Vec3;", cancellable = true)
+    @Inject(at = @At("HEAD"), method = "getViewVector(F)Lnet/minecraft/world/phys/Vec3;", cancellable = true)
     private void onGetViewVector(float p_20253_, CallbackInfoReturnable<Vec3> info) {
         FreeCamController freeCam = FreeCamController.instance;
-        if (freeCam.isActive() && freeCam.shouldOverridePlayerPosition()) {
-            var entity = (Entity) (Object) this;
-            if (entity instanceof LocalPlayer) {
-                info.setReturnValue(this.calculateViewVector(freeCam.getXRot(), freeCam.getYRot()));
-                info.cancel();
-            }
+        if (freeCam.shouldOverrideCameraEntityPosition((Entity) (Object) this)) {
+            info.setReturnValue(this.calculateViewVector(freeCam.getXRot(), freeCam.getYRot()));
         }
     }
 }
