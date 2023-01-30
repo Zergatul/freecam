@@ -2,13 +2,13 @@ package com.zergatul.freecam;
 
 import com.mojang.math.Quaternion;
 import com.mojang.math.Vector3f;
-import com.zergatul.freecam.helpers.MixinGameRendererHelper;
 import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.Input;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.*;
 import net.minecraft.util.Mth;
@@ -33,7 +33,8 @@ public class FreeCamController {
     private final Vector3f forwards = new Vector3f(0.0F, 0.0F, 1.0F);
     private final Vector3f up = new Vector3f(0.0F, 1.0F, 0.0F);
     private final Vector3f left = new Vector3f(1.0F, 0.0F, 0.0F);
-    private FreeCamConfig config = ConfigStore.instance.load();
+    private final FreeCamConfig config = ConfigStore.instance.load();
+    private final MutableComponent chatPrefix = Component.literal("[freecam]").withStyle(ChatFormatting.GREEN).append(" ");
     private boolean active;
     private CameraType oldCameraType;
     private Input playerInput;
@@ -44,10 +45,10 @@ public class FreeCamController {
     private double leftVelocity;
     private double upVelocity;
     private long lastTime;
-    private boolean insideRenderDebug;
-    private boolean cameraControlActive;
+    private boolean freecamHitResultPicking;
+    private boolean cameraLock;
     private boolean eyeLock;
-    private MutableComponent chatPrefix = Component.literal("[freecam]").withStyle(ChatFormatting.GREEN).append(" ");
+    private boolean gameRendererPicking;
 
     private FreeCamController() {
 
@@ -85,13 +86,13 @@ public class FreeCamController {
         }
     }
 
-    public void toggleCameraControl() {
+    public void toggleCameraLock() {
         if (active) {
-            cameraControlActive = !cameraControlActive;
-            if (cameraControlActive) {
-                mc.player.input = freecamInput;
-            } else {
+            cameraLock = !cameraLock;
+            if (cameraLock) {
                 mc.player.input = playerInput;
+            } else {
+                mc.player.input = freecamInput;
             }
         }
     }
@@ -103,51 +104,59 @@ public class FreeCamController {
     }
 
     public void enable() {
-        if (!active) {
-            active = true;
-            cameraControlActive = true;
-            eyeLock = false;
-            oldCameraType = mc.options.getCameraType();
-            playerInput = mc.player.input;
-            mc.player.input = freecamInput = new Input();
-            mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
-            if (oldCameraType.isFirstPerson() != mc.options.getCameraType().isFirstPerson()) {
-                mc.gameRenderer.checkEntityPostEffect(mc.options.getCameraType().isFirstPerson() ? mc.getCameraEntity() : null);
-            }
-
-            float frameTime = mc.getFrameTime();
-            Entity entity = mc.getCameraEntity();
-            x = Mth.lerp(frameTime, entity.xo, entity.getX());
-            y = Mth.lerp(frameTime, entity.yo, entity.getY()) + entity.getEyeHeight();
-            z = Mth.lerp(frameTime, entity.zo, entity.getZ());
-            yRot = entity.getViewYRot(frameTime);
-            xRot = entity.getViewXRot(frameTime);
-
-            calculateVectors();
-
-            double distance = -2;
-            x += (double)this.forwards.x() * distance;
-            y += (double)this.forwards.y() * distance;
-            z += (double)this.forwards.z() * distance;
-
-            forwardVelocity = 0;
-            leftVelocity = 0;
-            upVelocity = 0;
-            lastTime = 0;
+        if (active) {
+            return;
         }
+
+        Entity entity = mc.getCameraEntity();
+        if (entity == null) {
+            return;
+        }
+
+        active = true;
+        cameraLock = false;
+        eyeLock = false;
+        oldCameraType = mc.options.getCameraType();
+        playerInput = mc.player.input;
+        mc.player.input = freecamInput = new Input();
+        mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
+        if (oldCameraType.isFirstPerson() != mc.options.getCameraType().isFirstPerson()) {
+            mc.gameRenderer.checkEntityPostEffect(mc.options.getCameraType().isFirstPerson() ? mc.getCameraEntity() : null);
+        }
+
+        float frameTime = mc.getFrameTime();
+        x = Mth.lerp(frameTime, entity.xo, entity.getX());
+        y = Mth.lerp(frameTime, entity.yo, entity.getY()) + entity.getEyeHeight();
+        z = Mth.lerp(frameTime, entity.zo, entity.getZ());
+        yRot = entity.getViewYRot(frameTime);
+        xRot = entity.getViewXRot(frameTime);
+
+        calculateVectors();
+
+        double distance = -2;
+        x += (double)this.forwards.x() * distance;
+        y += (double)this.forwards.y() * distance;
+        z += (double)this.forwards.z() * distance;
+
+        forwardVelocity = 0;
+        leftVelocity = 0;
+        upVelocity = 0;
+        lastTime = 0;
     }
 
     public void disable() {
-        if (active) {
-            active = false;
-            CameraType cameraType = mc.options.getCameraType();
-            mc.options.setCameraType(oldCameraType);
-            mc.player.input = playerInput;
-            if (cameraType.isFirstPerson() != mc.options.getCameraType().isFirstPerson()) {
-                mc.gameRenderer.checkEntityPostEffect(mc.options.getCameraType().isFirstPerson() ? mc.getCameraEntity() : null);
-            }
-            oldCameraType = null;
+        if (!active) {
+            return;
         }
+
+        active = false;
+        CameraType cameraType = mc.options.getCameraType();
+        mc.options.setCameraType(oldCameraType);
+        mc.player.input = playerInput;
+        if (cameraType.isFirstPerson() != mc.options.getCameraType().isFirstPerson()) {
+            mc.gameRenderer.checkEntityPostEffect(mc.options.getCameraType().isFirstPerson() ? mc.getCameraEntity() : null);
+        }
+        oldCameraType = null;
     }
 
     public void onHandleKeyBindings() {
@@ -160,8 +169,8 @@ public class FreeCamController {
         while (KeyBindingsController.toggleFreeCam.consumeClick()) {
             toggle();
         }
-        while (KeyBindingsController.toggleCamControl.consumeClick()) {
-            toggleCameraControl();
+        while (KeyBindingsController.toggleCameraLock.consumeClick()) {
+            toggleCameraLock();
         }
         while (KeyBindingsController.toggleEyeLock.consumeClick()) {
             toggleEyeLock();
@@ -184,7 +193,7 @@ public class FreeCamController {
                                 .append(Component.literal("- acceleration=" + config.acceleration).withStyle(ChatFormatting.WHITE)).append("\n")
                                 .append(Component.literal("- slowdown=" + config.slowdownFactor).withStyle(ChatFormatting.WHITE)).append("\n")
                                 .append(Component.literal("- hands=" + (config.renderHands ? 1 : 0)).withStyle(ChatFormatting.WHITE)).append("\n")
-                                .append(Component.literal("- interactions=" + (!config.disableInteractions ? 1 : 0)).withStyle(ChatFormatting.WHITE)));
+                                .append(Component.literal("- target=" + (config.target ? 1 : 0)).withStyle(ChatFormatting.WHITE)));
                     } else {
                         printHelp();
                     }
@@ -247,13 +256,12 @@ public class FreeCamController {
                                 }
                                 break;
 
-                            case "interactions":
-                            case "ia":
+                            case "target":
                                 if (value == 0) {
-                                    config.disableInteractions = true;
+                                    config.target = false;
                                     saveConfig();
                                 } else if (value == 1) {
-                                    config.disableInteractions = false;
+                                    config.target = true;
                                     saveConfig();
                                 } else {
                                     printError("Invalid value. Only 0 or 1 accepted.");
@@ -276,12 +284,32 @@ public class FreeCamController {
         }
     }
 
-    public void onMouseTurn(double yRot, double xRot) {
-        if (!eyeLock) {
-            this.xRot += (float) xRot * 0.15F;
-            this.yRot += (float) yRot * 0.15F;
-            this.xRot = Mth.clamp(this.xRot, -90, 90);
-            calculateVectors();
+    public void onPlayerTurn(LocalPlayer player, double yRot, double xRot) {
+        if (active && !cameraLock) {
+            if (!eyeLock) {
+                this.xRot += (float) xRot * 0.15F;
+                this.yRot += (float) yRot * 0.15F;
+                this.xRot = Mth.clamp(this.xRot, -90, 90);
+                calculateVectors();
+            }
+        } else {
+            player.turn(yRot, xRot);
+        }
+    }
+
+    public boolean onRenderCrosshairIsFirstPerson(CameraType cameraType) {
+        if (active && !cameraLock && !eyeLock && config.target) {
+            return true;
+        } else {
+            return cameraType.isFirstPerson();
+        }
+    }
+
+    public boolean onRenderItemInHandIsFirstPerson(CameraType cameraType) {
+        if (active && config.renderHands && !cameraLock && !eyeLock) {
+            return true;
+        } else {
+            return cameraType.isFirstPerson();
         }
     }
 
@@ -297,9 +325,9 @@ public class FreeCamController {
             lastTime = currTime;
 
             Input input = playerInput;
-            float forwardImpulse = cameraControlActive ? (input.up ? 1 : 0) + (input.down ? -1 : 0) : 0;
-            float leftImpulse = cameraControlActive ? (input.left ? 1 : 0) + (input.right ? -1 : 0) : 0;
-            float upImpulse = cameraControlActive ? ((input.jumping ? 1 : 0) + (input.shiftKeyDown ? -1 : 0)) : 0;
+            float forwardImpulse = !cameraLock ? (input.up ? 1 : 0) + (input.down ? -1 : 0) : 0;
+            float leftImpulse = !cameraLock ? (input.left ? 1 : 0) + (input.right ? -1 : 0) : 0;
+            float upImpulse = !cameraLock ? ((input.jumping ? 1 : 0) + (input.shiftKeyDown ? -1 : 0)) : 0;
             double slowdown = Math.pow(config.slowdownFactor, frameTime);
             forwardVelocity = combineMovement(forwardVelocity, forwardImpulse, frameTime, config.acceleration, slowdown);
             leftVelocity = combineMovement(leftVelocity, leftImpulse, frameTime, config.acceleration, slowdown);
@@ -332,10 +360,6 @@ public class FreeCamController {
     public void onClientTickStart() {
         if (active) {
             disableKey(mc.options.keyTogglePerspective);
-            if (config.disableInteractions) {
-                disableKey(mc.options.keyUse);
-                disableKey(mc.options.keyAttack);
-            }
             playerInput.tick(false, 0);
         }
     }
@@ -344,8 +368,12 @@ public class FreeCamController {
         disable();
     }
 
-    public boolean shouldOverridePlayerPosition() {
-        return MixinGameRendererHelper.insidePick || insideRenderDebug;
+    public boolean shouldOverrideCameraEntityPosition(Entity entity) {
+        if (active && !cameraLock && !eyeLock && config.target) {
+            return entity == mc.getCameraEntity() && gameRendererPicking || freecamHitResultPicking;
+        } else {
+            return false;
+        }
     }
 
     public void onRenderDebugScreenLeft(List<String> list) {
@@ -357,53 +385,67 @@ public class FreeCamController {
     }
 
     public void onRenderDebugScreenRight(List<String> list) {
-        if (active) {
-            insideRenderDebug = true;
-            try {
-                HitResult hit = mc.player.pick(20.0D, 0.0F, false);
-                if (hit.getType() == HitResult.Type.BLOCK) {
-                    BlockPos pos = ((BlockHitResult)hit).getBlockPos();
-                    BlockState state = mc.level.getBlockState(pos);
-                    list.add("");
-                    list.add(ChatFormatting.UNDERLINE + "Free Cam Targeted Block: " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ());
-                    list.add(String.valueOf(ForgeRegistries.BLOCKS.getKey(state.getBlock())));
+        if (!active) {
+            return;
+        }
+        if (cameraLock || eyeLock) {
+            return;
+        }
+        if (!config.target) {
+            return;
+        }
 
-                    for (var entry: state.getValues().entrySet()) {
-                        list.add(getPropertyValueString(entry));
-                    }
+        freecamHitResultPicking = true;
+        try {
+            HitResult hit = mc.player.pick(20.0D, 0.0F, false);
+            if (hit.getType() == HitResult.Type.BLOCK) {
+                BlockPos pos = ((BlockHitResult)hit).getBlockPos();
+                BlockState state = mc.level.getBlockState(pos);
+                list.add("");
+                list.add(ChatFormatting.UNDERLINE + "Free Cam Targeted Block: " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ());
+                list.add(String.valueOf(ForgeRegistries.BLOCKS.getKey(state.getBlock())));
 
-                    state.getTags().map(tag -> "#" + tag.location()).forEach(list::add);
+                for (var entry: state.getValues().entrySet()) {
+                    list.add(getPropertyValueString(entry));
                 }
+
+                state.getTags().map(tag -> "#" + tag.location()).forEach(list::add);
             }
-            finally {
-                insideRenderDebug = false;
-            }
+        }
+        finally {
+            freecamHitResultPicking = false;
         }
     }
 
-    public boolean shouldRenderHands() {
-        return config.renderHands && cameraControlActive && !eyeLock;
+    public void onBeforeGameRendererPick() {
+        gameRendererPicking = true;
     }
 
-    public boolean shouldRenderCrosshair() {
-        return active && cameraControlActive && !eyeLock;
+    public void onAfterGameRendererPick() {
+        gameRendererPicking = false;
     }
 
     private void applyEyeLock() {
-        if (eyeLock) {
-            float frameTime = mc.getFrameTime();
-            Entity entity = mc.getCameraEntity();
-            double xe = Mth.lerp(frameTime, entity.xo, entity.getX());
-            double ye = Mth.lerp(frameTime, entity.yo, entity.getY()) + entity.getEyeHeight();
-            double ze = Mth.lerp(frameTime, entity.zo, entity.getZ());
-            double dx = x - xe;
-            double dy = y - ye;
-            double dz = z - ze;
-            this.xRot = (float) (Math.atan2(dy, Math.sqrt(dx * dx + dz * dz)) / Math.PI * 180);
-            this.yRot = (float) (Math.atan2(dz, dx) / Math.PI * 180 + 90);
-            this.xRot = Mth.clamp(this.xRot, -90, 90);
-            calculateVectors();
+        if (!eyeLock) {
+            return;
         }
+
+        float frameTime = mc.getFrameTime();
+        Entity entity = mc.getCameraEntity();
+        if (entity == null) {
+            return;
+        }
+
+        double xe = Mth.lerp(frameTime, entity.xo, entity.getX());
+        double ye = Mth.lerp(frameTime, entity.yo, entity.getY()) + entity.getEyeHeight();
+        double ze = Mth.lerp(frameTime, entity.zo, entity.getZ());
+        double dx = x - xe;
+        double dy = y - ye;
+        double dz = z - ze;
+        this.xRot = (float) (Math.atan2(dy, Math.sqrt(dx * dx + dz * dz)) / Math.PI * 180);
+        this.yRot = (float) (Math.atan2(dz, dx) / Math.PI * 180 + 90);
+        this.xRot = Mth.clamp(this.xRot, -90, 90);
+        calculateVectors();
     }
 
     private void calculateVectors() {
@@ -492,10 +534,8 @@ public class FreeCamController {
                     .append(Component.literal(" render hands while in freecam. Values: 0/1.").withStyle(ChatFormatting.WHITE))
                     .append("\n")
                 .append(Component.literal("- ").withStyle(ChatFormatting.WHITE))
-                    .append(Component.literal(".freecam interactions 0").withStyle(ChatFormatting.YELLOW))
-                    .append(Component.literal(" enable interactions (left/right mouse clicks) while in freecam. Values: 0/1.").withStyle(ChatFormatting.WHITE))
-                    .append("\n")
-                    .append(Component.literal(" (synonyms: ia)").withStyle(ChatFormatting.AQUA)));
+                .append(Component.literal(".freecam target 0").withStyle(ChatFormatting.YELLOW))
+                .append(Component.literal(" disable custom targeting in freecam. Values: 0/1.").withStyle(ChatFormatting.WHITE)));
     }
 
     private void printSystemMessage(Component component) {

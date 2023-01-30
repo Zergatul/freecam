@@ -50,10 +50,10 @@ You can control mod settings from in-game chat:
 .freecam acc 100 - set acceleration, blocks/second^2 (default 50)
 .freecam slow 0.001 - set slowdown speed when you release all buttons. Every second speed is multiplied by this value (default 0.01)
 .freecam hands 1 - show hands while in freecam (default 0)
-.freecam ia 0 - disable interactions with blocks/entities while in freecam (default 1)
+.freecam target 0 - disable custom targeting in freecam (default 1)
 '''
 # A dependency - use the . to indicate dependency for a specific modid. Dependencies are optional.
-[[dependencies.zergatul.freecam]] #optional
+[[dependencies.freecam]] #optional
     # the modid of the dependency
     modId="forge" #mandatory
     # Does this dependency have to exist - if not, ordering below must be specified
@@ -65,7 +65,7 @@ You can control mod settings from in-game chat:
     # Side this dependency is applied on - BOTH, CLIENT or SERVER
     side="BOTH"
 # Here's another dependency
-[[dependencies.zergatul.freecam]]
+[[dependencies.freecam]]
     modId="minecraft"
     mandatory=true
 # This version range declares a minimum of the current minecraft version up to but not including the next major version

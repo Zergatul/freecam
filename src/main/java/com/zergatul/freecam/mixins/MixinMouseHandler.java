@@ -1,22 +1,17 @@
 package com.zergatul.freecam.mixins;
 
-import com.zergatul.freecam.helpers.MixinMouseHandlerHelper;
+import com.zergatul.freecam.FreeCamController;
 import net.minecraft.client.MouseHandler;
+import net.minecraft.client.player.LocalPlayer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.Redirect;
 
 @Mixin(MouseHandler.class)
 public abstract class MixinMouseHandler {
 
-    @Inject(at = @At("HEAD"), method = "Lnet/minecraft/client/MouseHandler;turnPlayer()V")
-    private void onBeforeTurnPlayer(CallbackInfo info) {
-        MixinMouseHandlerHelper.insideTurnPlayer = true;
-    }
-
-    @Inject(at = @At("TAIL"), method = "Lnet/minecraft/client/MouseHandler;turnPlayer()V")
-    private void onAfterTurnPlayer(CallbackInfo info) {
-        MixinMouseHandlerHelper.insideTurnPlayer = false;
+    @Redirect(method = "turnPlayer()V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/player/LocalPlayer;turn(DD)V"))
+    private void onLocalPlayerTurn(LocalPlayer player, double yRot, double xRot) {
+        FreeCamController.instance.onPlayerTurn(player, yRot, xRot);
     }
 }
