@@ -25,7 +25,7 @@ public class ModApiWrapper {
     @SubscribeEvent
     public void onRenderTick(TickEvent.RenderTickEvent event) {
         if (event.phase == TickEvent.Phase.START) {
-            FreeCamController.instance.onRenderTickStart();
+            FreeCamController.instance.onRenderTickStart(event.renderTickTime);
         }
     }
 

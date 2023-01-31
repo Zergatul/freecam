@@ -125,9 +125,10 @@ public class FreeCamController {
         }
 
         float frameTime = mc.getFrameTime();
-        x = Mth.lerp(frameTime, entity.xo, entity.getX());
-        y = Mth.lerp(frameTime, entity.yo, entity.getY()) + entity.getEyeHeight();
-        z = Mth.lerp(frameTime, entity.zo, entity.getZ());
+        Vec3 pos = entity.getEyePosition(frameTime);
+        x = pos.x;
+        y = pos.y;
+        z = pos.z;
         yRot = entity.getViewYRot(frameTime);
         xRot = entity.getViewXRot(frameTime);
 
@@ -259,7 +260,6 @@ public class FreeCamController {
                             case "target":
                                 if (value == 0) {
                                     config.target = false;
-                                    config.target = false;
                                     saveConfig();
                                 } else if (value == 1) {
                                     config.target = true;
@@ -314,48 +314,50 @@ public class FreeCamController {
         }
     }
 
-    public void onRenderTickStart() {
-        if (active) {
-            if (lastTime == 0) {
-                lastTime = System.nanoTime();
-                return;
-            }
-
-            long currTime = System.nanoTime();
-            float frameTime = (currTime - lastTime) / 1e9f;
-            lastTime = currTime;
-
-            Input input = playerInput;
-            float forwardImpulse = !cameraLock ? (input.up ? 1 : 0) + (input.down ? -1 : 0) : 0;
-            float leftImpulse = !cameraLock ? (input.left ? 1 : 0) + (input.right ? -1 : 0) : 0;
-            float upImpulse = !cameraLock ? ((input.jumping ? 1 : 0) + (input.shiftKeyDown ? -1 : 0)) : 0;
-            double slowdown = Math.pow(config.slowdownFactor, frameTime);
-            forwardVelocity = combineMovement(forwardVelocity, forwardImpulse, frameTime, config.acceleration, slowdown);
-            leftVelocity = combineMovement(leftVelocity, leftImpulse, frameTime, config.acceleration, slowdown);
-            upVelocity = combineMovement(upVelocity, upImpulse, frameTime, config.acceleration, slowdown);
-
-            double dx = (double) this.forwards.x() * forwardVelocity + (double) this.left.x() * leftVelocity;
-            double dy = (double) this.forwards.y() * forwardVelocity + upVelocity + (double) this.left.y() * leftVelocity;
-            double dz = (double) this.forwards.z() * forwardVelocity + (double) this.left.z() * leftVelocity;
-            dx *= frameTime;
-            dy *= frameTime;
-            dz *= frameTime;
-            double speed = new Vec3(dx, dy, dz).length() / frameTime;
-            if (speed > config.maxSpeed) {
-                double factor = config.maxSpeed / speed;
-                forwardVelocity *= factor;
-                leftVelocity *= factor;
-                upVelocity *= factor;
-                dx *= factor;
-                dy *= factor;
-                dz *= factor;
-            }
-            x += dx;
-            y += dy;
-            z += dz;
-
-            applyEyeLock();
+    public void onRenderTickStart(float partialTicks) {
+        if (!active) {
+            return;
         }
+
+        if (lastTime == 0) {
+            lastTime = System.nanoTime();
+            return;
+        }
+
+        long currTime = System.nanoTime();
+        float frameTime = (currTime - lastTime) / 1e9f;
+        lastTime = currTime;
+
+        Input input = playerInput;
+        float forwardImpulse = !cameraLock ? (input.up ? 1 : 0) + (input.down ? -1 : 0) : 0;
+        float leftImpulse = !cameraLock ? (input.left ? 1 : 0) + (input.right ? -1 : 0) : 0;
+        float upImpulse = !cameraLock ? ((input.jumping ? 1 : 0) + (input.shiftKeyDown ? -1 : 0)) : 0;
+        double slowdown = Math.pow(config.slowdownFactor, frameTime);
+        forwardVelocity = combineMovement(forwardVelocity, forwardImpulse, frameTime, config.acceleration, slowdown);
+        leftVelocity = combineMovement(leftVelocity, leftImpulse, frameTime, config.acceleration, slowdown);
+        upVelocity = combineMovement(upVelocity, upImpulse, frameTime, config.acceleration, slowdown);
+
+        double dx = (double) this.forwards.x() * forwardVelocity + (double) this.left.x() * leftVelocity;
+        double dy = (double) this.forwards.y() * forwardVelocity + upVelocity + (double) this.left.y() * leftVelocity;
+        double dz = (double) this.forwards.z() * forwardVelocity + (double) this.left.z() * leftVelocity;
+        dx *= frameTime;
+        dy *= frameTime;
+        dz *= frameTime;
+        double speed = new Vec3(dx, dy, dz).length() / frameTime;
+        if (speed > config.maxSpeed) {
+            double factor = config.maxSpeed / speed;
+            forwardVelocity *= factor;
+            leftVelocity *= factor;
+            upVelocity *= factor;
+            dx *= factor;
+            dy *= factor;
+            dz *= factor;
+        }
+        x += dx;
+        y += dy;
+        z += dz;
+
+        applyEyeLock(partialTicks);
     }
 
     public void onClientTickStart() {
@@ -426,23 +428,20 @@ public class FreeCamController {
         gameRendererPicking = false;
     }
 
-    private void applyEyeLock() {
+    private void applyEyeLock(float partialTicks) {
         if (!eyeLock) {
             return;
         }
 
-        float frameTime = mc.getFrameTime();
         Entity entity = mc.getCameraEntity();
         if (entity == null) {
             return;
         }
 
-        double xe = Mth.lerp(frameTime, entity.xo, entity.getX());
-        double ye = Mth.lerp(frameTime, entity.yo, entity.getY()) + entity.getEyeHeight();
-        double ze = Mth.lerp(frameTime, entity.zo, entity.getZ());
-        double dx = x - xe;
-        double dy = y - ye;
-        double dz = z - ze;
+        Vec3 pos = entity.getEyePosition(partialTicks);
+        double dx = x - pos.x;
+        double dy = y - pos.y;
+        double dz = z - pos.z;
         this.xRot = (float) (Math.atan2(dy, Math.sqrt(dx * dx + dz * dz)) / Math.PI * 180);
         this.yRot = (float) (Math.atan2(dz, dx) / Math.PI * 180 + 90);
         this.xRot = Mth.clamp(this.xRot, -90, 90);
