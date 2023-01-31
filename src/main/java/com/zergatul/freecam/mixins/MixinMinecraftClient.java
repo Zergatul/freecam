@@ -12,14 +12,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(MinecraftClient.class)
 public abstract class MixinMinecraftClient {
 
-    @Inject(at = @At("HEAD"), method = "Lnet/minecraft/client/MinecraftClient;joinWorld(Lnet/minecraft/client/world/ClientWorld;)V")
+    @Inject(at = @At("HEAD"), method = "joinWorld(Lnet/minecraft/client/world/ClientWorld;)V")
     private void onBeforeJoinWorld(ClientWorld world, CallbackInfo info) {
         if (world != null) {
             FreeCamController.instance.onWorldUnload();
         }
     }
 
-    @Inject(at = @At("HEAD"), method = "Lnet/minecraft/client/MinecraftClient;disconnect(Lnet/minecraft/client/gui/screen/Screen;)V")
+    @Inject(at = @At("HEAD"), method = "disconnect(Lnet/minecraft/client/gui/screen/Screen;)V")
     private void onBeforeDisconnect(Screen screen, CallbackInfo info) {
         MinecraftClient mc = (MinecraftClient) (Object) this;
         if (mc.world != null) {
@@ -27,12 +27,7 @@ public abstract class MixinMinecraftClient {
         }
     }
 
-    @Inject(at = @At("HEAD"), method = "Lnet/minecraft/client/MinecraftClient;render(Z)V")
-    private void onBeforeRender(boolean tick, CallbackInfo info) {
-        FreeCamController.instance.onRenderTickStart();
-    }
-
-    @Inject(at = @At("TAIL"), method = "Lnet/minecraft/client/MinecraftClient;handleInputEvents()V")
+    @Inject(at = @At("TAIL"), method = "handleInputEvents()V")
     private void onHandleInputEvents(CallbackInfo info) {
         FreeCamController.instance.onHandleKeyBindings();
     }

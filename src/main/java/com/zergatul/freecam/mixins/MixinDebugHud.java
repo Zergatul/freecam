@@ -12,12 +12,12 @@ import java.util.List;
 @Mixin(DebugHud.class)
 public abstract class MixinDebugHud {
 
-    @Inject(at = @At("TAIL"), method = "Lnet/minecraft/client/gui/hud/DebugHud;getLeftText()Ljava/util/List;")
+    @Inject(at = @At("TAIL"), method = "getLeftText()Ljava/util/List;")
     private void onAfterGetLeftText(CallbackInfoReturnable<List<String>> info) {
         FreeCamController.instance.onRenderDebugScreenLeft(info.getReturnValue());
     }
 
-    @Inject(at = @At("TAIL"), method = "Lnet/minecraft/client/gui/hud/DebugHud;getRightText()Ljava/util/List;")
+    @Inject(at = @At("TAIL"), method = "getRightText()Ljava/util/List;")
     private void onAfterGetRightText(CallbackInfoReturnable<List<String>> info) {
         FreeCamController.instance.onRenderDebugScreenRight(info.getReturnValue());
     }

@@ -14,7 +14,7 @@
     "MixinInGameHud",
     "MixinMinecraftClient",
     "MixinMouse",
-    "MixinPerspective",
+    "MixinOptions",
     "MixinWorldRenderer"
   ],
   "injectors": {
