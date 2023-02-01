@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "compatibilityLevel": "JAVA_8",
+  "package": "com.zergatul.freecam.mixins",
+  "refmap": "mixins.freecam.refmap.json",
+  "verbose": true,
+  "client": [
+    "MixinAbstractClientPlayer",
+    "MixinEntityPlayerSP",
+    "MixinEntityRenderer",
+    "MixinGuiOverlayDebug",
+    "MixinRenderGlobal",
+    "MixinRenderManager"
+  ]
+}
