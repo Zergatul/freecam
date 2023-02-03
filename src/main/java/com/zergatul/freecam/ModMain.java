@@ -1,5 +1,6 @@
 package com.zergatul.freecam;
 
+import net.minecraftforge.client.ClientRegistry;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
@@ -10,14 +11,14 @@ import org.apache.logging.log4j.Logger;
 @Mod("freecam")
 public class ModMain {
 
-    public static final Logger logger = LogManager.getLogger("freecam");
-
     public ModMain() {
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setup);
     }
 
     private void setup(final FMLCommonSetupEvent event) {
-        KeyBindingsController.instance.setup();
+        ClientRegistry.registerKeyBinding(KeyBindingsController.toggleFreeCam);
+        ClientRegistry.registerKeyBinding(KeyBindingsController.toggleCameraLock);
+        ClientRegistry.registerKeyBinding(KeyBindingsController.toggleEyeLock);
         MinecraftForge.EVENT_BUS.register(ModApiWrapper.instance);
     }
 }

@@ -4,14 +4,14 @@
   "package": "com.zergatul.freecam.mixins",
   "refmap": "zergatul.freecam.mixin-refmap.json",
   "compatibilityLevel": "JAVA_17",
-  "mixins": [
+  "client": [
     "MixinCamera",
-    "MixinCameraType",
     "MixinDebugScreenOverlay",
     "MixinEntity",
     "MixinGameRenderer",
     "MixinGui",
     "MixinLevelRenderer",
+    "MixinMinecraft",
     "MixinMouseHandler"
   ]
 }

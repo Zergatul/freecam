@@ -15,11 +15,6 @@ public class ModApiWrapper {
     }
 
     @SubscribeEvent
-    public void onKeyInputEvent(InputEvent.KeyInputEvent event) {
-        FreeCamController.instance.onKeyInput();
-    }
-
-    @SubscribeEvent
     public void onClientChatEvent(ClientChatEvent event) {
         Event evt = new Event();
         FreeCamController.instance.onClientChat(event.getMessage(), evt);
@@ -31,7 +26,7 @@ public class ModApiWrapper {
     @SubscribeEvent
     public void onRenderTick(TickEvent.RenderTickEvent event) {
         if (event.phase == TickEvent.Phase.START) {
-            FreeCamController.instance.onRenderTickStart();
+            FreeCamController.instance.onRenderTickStart(event.renderTickTime);
         }
     }
 
