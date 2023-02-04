@@ -12,12 +12,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(RenderGlobal.class)
 public abstract class MixinRenderGlobal {
 
-    @Inject(at = @At("HEAD"), method = "renderEntities(Lnet/minecraft/entity/Entity;Lnet/minecraft/client/renderer/culling/ICamera;F)V", cancellable = true)
+    @Inject(at = @At("HEAD"), method = "renderEntities(Lnet/minecraft/entity/Entity;Lnet/minecraft/client/renderer/culling/ICamera;F)V")
     private void onBeforeRenderEntities(Entity p_renderEntities_1_, ICamera p_renderEntities_2_, float p_renderEntities_3_, CallbackInfo ci) {
         FreeCamController.instance.onBeforeRenderEntities();
     }
 
-    @Inject(at = @At("TAIL"), method = "renderEntities(Lnet/minecraft/entity/Entity;Lnet/minecraft/client/renderer/culling/ICamera;F)V", cancellable = true)
+    @Inject(at = @At("TAIL"), method = "renderEntities(Lnet/minecraft/entity/Entity;Lnet/minecraft/client/renderer/culling/ICamera;F)V")
     private void onAfterRenderEntities(Entity p_renderEntities_1_, ICamera p_renderEntities_2_, float p_renderEntities_3_, CallbackInfo ci) {
         FreeCamController.instance.onAfterRenderEntities();
     }

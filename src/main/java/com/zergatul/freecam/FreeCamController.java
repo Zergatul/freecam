@@ -212,6 +212,14 @@ public class FreeCamController {
         }
     }
 
+    public double getViewFrustumEntityPosX(double viewEntityX) {
+        return override != null ? px : viewEntityX;
+    }
+
+    public double getViewFrustumEntityPosZ(double viewEntityZ) {
+        return override != null ? pz : viewEntityZ;
+    }
+
     private void enable() {
         if (active) {
             return;

@@ -4,7 +4,7 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 
-@Mod(modid = ModMain.MOD_ID, name = "FreeCam by Zergatul", version = "0.1")
+@Mod(modid = ModMain.MOD_ID, name = "FreeCam by Zergatul", version = "0.1.1")
 public class ModMain {
 
     public static final String MOD_ID = "freecam";

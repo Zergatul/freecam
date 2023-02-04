@@ -10,6 +10,7 @@
     "MixinEntityRenderer",
     "MixinGuiOverlayDebug",
     "MixinRenderGlobal",
-    "MixinRenderManager"
+    "MixinRenderManager",
+    "MixinViewFrustum"
   ]
 }
