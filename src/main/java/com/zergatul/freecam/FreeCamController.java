@@ -5,10 +5,9 @@ import com.zergatul.freecam.math.Vector3f;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.entity.Entity;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.MathHelper;
 import net.minecraft.util.MovementInput;
-import net.minecraft.util.Vec3;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Vec3d;
 
 import java.util.List;
 
@@ -25,7 +24,6 @@ public class FreeCamController {
     private boolean active;
     private int oldCameraType;
     private MovementInput oldInput;
-    private Entity oldEntity;
     private double x, y, z;
     private float yRot, xRot;
     private double forwardVelocity;
@@ -70,13 +68,13 @@ public class FreeCamController {
     }
 
     public void onKeyInput() {
-        if (mc.thePlayer == null) {
+        if (mc.player == null) {
             return;
         }
         if (mc.currentScreen != null) {
             return;
         }
-        if (KeyBindingsController.toggleFreeCam.isKeyDown()) {
+        if (KeyBindings.toggleFreeCam.isKeyDown()) {
             toggle();
         }
     }
@@ -84,7 +82,7 @@ public class FreeCamController {
     public void onMouseTurn(double yRot, double xRot) {
         this.xRot += (float) xRot * 0.15F;
         this.yRot += (float) yRot * 0.15F;
-        this.xRot = MathHelper.clamp_float(this.xRot, -90, 90);
+        this.xRot = MathHelper.clamp(this.xRot, -90, 90);
         calculateVectors();
     }
 
@@ -137,9 +135,7 @@ public class FreeCamController {
     public void onGetDebugInfoLeft(List<String> list) {
         if (active) {
             list.add("");
-            list.add("FreeCam");
-            list.add(String.format("XYZ: %.3f / %.5f / %.3f", x, y, z));
-            list.add(String.format("Facing: (%.1f / %.1f)", MathHelper.wrapAngleTo180_float(yRot), MathHelper.wrapAngleTo180_float(xRot)));
+            list.add(String.format("FreeCam XYZ: %.3f / %.5f / %.3f", x, y, z));
         }
     }
 
@@ -204,14 +200,6 @@ public class FreeCamController {
         }
     }
 
-    public boolean shouldOverrideSpectator(AbstractClientPlayer player) {
-        if (override == player && !entitiesRendering) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
     public double getViewFrustumEntityPosX(double viewEntityX) {
         return override != null ? px : viewEntityX;
     }
@@ -220,25 +208,36 @@ public class FreeCamController {
         return override != null ? pz : viewEntityZ;
     }
 
+    public boolean shouldOverrideSpectator(AbstractClientPlayer player) {
+        if (override == player && !entitiesRendering) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     private void enable() {
         if (active) {
             return;
         }
 
+        Entity entity = mc.getRenderViewEntity();
+        if (entity == null) {
+            return;
+        }
+
         active = true;
         oldCameraType = mc.gameSettings.thirdPersonView;
-        oldInput = mc.thePlayer.movementInput;
-        mc.thePlayer.movementInput = new MovementInput();
+        oldInput = mc.player.movementInput;
+        mc.player.movementInput = new MovementInput();
         mc.gameSettings.thirdPersonView = 0;
 
-        oldEntity = mc.getRenderViewEntity();
-        //float partialTicks = mc.timer.partialTicks;
-        Vec3 pos = oldEntity.getPositionEyes(1);
-        x = pos.xCoord;
-        y = pos.yCoord;
-        z = pos.zCoord;
-        yRot = oldEntity.rotationYaw;
-        xRot = oldEntity.rotationPitch;
+        Vec3d pos = entity.getPositionEyes(1);
+        x = pos.x;
+        y = pos.y;
+        z = pos.z;
+        yRot = entity.rotationYaw;
+        xRot = entity.rotationPitch;
 
         calculateVectors();
 
@@ -261,10 +260,7 @@ public class FreeCamController {
 
         active = false;
         mc.gameSettings.thirdPersonView = oldCameraType;
-        mc.thePlayer.movementInput = oldInput;
-
-        mc.setRenderViewEntity(oldEntity);
-        //fakeEntity = null;
+        mc.player.movementInput = oldInput;
     }
 
     private void calculateVectors() {

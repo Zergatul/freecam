@@ -14,11 +14,11 @@ public abstract class MixinEntityPlayerSP extends Entity {
     }
 
     @Override
-    public void setAngles(float yaw, float pitch) {
+    public void turn(float yaw, float pitch) {
         if (FreeCamController.instance.isActive()) {
             FreeCamController.instance.onMouseTurn(yaw, -pitch);
         } else {
-            super.setAngles(yaw, pitch);
+            super.turn(yaw, pitch);
         }
     }
 }

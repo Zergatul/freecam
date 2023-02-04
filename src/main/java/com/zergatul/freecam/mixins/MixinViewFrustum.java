@@ -13,7 +13,8 @@ public abstract class MixinViewFrustum {
             method = "updateChunkPositions(DD)V",
             at = @At("HEAD"),
             ordinal = 0,
-            argsOnly = false) // argsOnly fails for some reason
+            argsOnly = true
+    )
     private double onUpdateChunkPositionsViewEntityX(double viewEntityX) {
         return FreeCamController.instance.getViewFrustumEntityPosX(viewEntityX);
     }
@@ -22,7 +23,8 @@ public abstract class MixinViewFrustum {
             method = "updateChunkPositions(DD)V",
             at = @At("HEAD"),
             ordinal = 1,
-            argsOnly = false) // argsOnly fails for some reason
+            argsOnly = true
+    )
     private double onUpdateChunkPositionsViewEntityZ(double viewEntityZ) {
         return FreeCamController.instance.getViewFrustumEntityPosZ(viewEntityZ);
     }

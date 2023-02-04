@@ -1,127 +1,95 @@
 buildscript {
     repositories {
-        maven { url 'https://jitpack.io' }
-        maven { url 'https://repo.spongepowered.org/maven' }
-        maven { url 'https://maven.minecraftforge.net/' }
+        maven { url = 'https://maven.minecraftforge.net/' }
+        maven { url = 'https://repo.spongepowered.org/maven' }
         mavenCentral()
     }
-
     dependencies {
-        classpath 'com.github.sdxqw:ForgeGradle:f2c5bb338e'
-        classpath 'com.github.sdxqw:MixinGradle:0.6-SNAPSHOT'
-        classpath 'com.github.jengelman.gradle.plugins:shadow:4.0.4'
+        classpath 'net.minecraftforge.gradle:ForgeGradle:5.+'
+        classpath 'org.spongepowered:mixingradle:0.7-SNAPSHOT'
     }
 }
 
-apply plugin: 'java'
-apply plugin: 'net.minecraftforge.gradle.forge'
+apply plugin: 'net.minecraftforge.gradle'
+// Only edit below this line, the above code adds and enables the necessary things for Forge to be setup.
 apply plugin: 'org.spongepowered.mixin'
-apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'idea'
 
-String modid = "freecam"
-String tweaker = "com.zergatul.freecam.FMLTweaker"
+version = mod_version
+group = mod_group
+archivesBaseName = mod_id
 
-compileJava {
-    sourceCompatibility = targetCompatibility = 8
-}
-
-version "0.1.1"
-group "io.github.sdxqw"
+sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
 
 minecraft {
-    version = "1.8.9-11.15.1.2318-1.8.9"
-    runDir = 'run'
-    mappings = "stable_22"
-    def args = [
-            "-Dfml.coreMods.load=${tweaker}",
-            '-Dmixin.hotSwap=true',
-            '-Dmixin.checks.interfaces=true',
-            "-XX:-DisableExplicitGC"
-    ]
-    clientJvmArgs.addAll(args)
-    serverJvmArgs.addAll(args)
-    makeObfSourceJar = true
-}
+    mappings channel: mappings_channel, version: mappings_version
+    // makeObfSourceJar = false // an Srg named sources jar is made by default. uncomment this to disable.
+    // accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
 
-configurations {
-    sdxqw
-    implementation.extendsFrom(sdxqw)
+    runs {
+        client {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+            property 'forge.logging.console.level', 'debug'
+            arg '-torg.spongepowered.asm.launch.MixinTweaker'
+        }
 
-    runtimeOnly{
-        canBeResolved = true
+        server {
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+            property 'forge.logging.console.level', 'debug'
+            arg '-torg.spongepowered.asm.launch.MixinTweaker'
+        }
     }
 }
 
 repositories {
-    maven { url 'https://jitpack.io' }
-    maven { url 'https://repo.spongepowered.org/repository/maven-public/' }
-    maven { url 'https://maven.minecraftforge.net/' }
-    mavenCentral()
+    maven { url = 'https://repo.spongepowered.org/maven' }
+}
+
+configurations {
+    embed
+    compile.extendsFrom(embed)
 }
 
 dependencies {
-    annotationProcessor('org.spongepowered:mixin:0.7.11-SNAPSHOT')
-    sdxqw('com.github.TheNullicorn:Nedit:2.1.0')
-
-    sdxqw('org.spongepowered:mixin:0.7.11-SNAPSHOT') {
-        exclude module: 'gson'
-        exclude module: 'commons-io'
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    annotationProcessor('org.spongepowered:mixin:0.8.5:processor')
+    implementation('org.spongepowered:mixin:0.8.5') {
         exclude module: 'guava'
+        exclude module: 'commons-io'
+        exclude module: 'gson'
     }
+    embed('org.spongepowered:mixin:0.8.5')
 }
 
-reobf {
-    shadowJar {
-        classpath = sourceSets.main.compileClasspath
+processResources {
+    inputs.property "version", project.version
+    inputs.property "mcversion", minecraft_version
+
+    filesMatching('mcmod.info') {
+
+        expand 'mod_id': mod_id, 'mod_name': mod_name, 'version': project.version,
+                'mcversion': minecraft_version, 'mod_description': mod_description
     }
 }
 
 mixin {
-    defaultObfuscationEnv notch
-    add sourceSets.main, "mixins.${modid}.refmap.json"
-}
-
-shadowJar {
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    configurations = [project.configurations.sdxqw]
-    classifier ""
-    exclude "LICENSE.txt", "dummyThing"
+    add sourceSets.main, mod_mixin_refmap.replace('${mod_id}', mod_id)
+    config mod_mixin_configs.replace('${mod_id}', mod_id)
 }
 
 jar {
-    manifest.attributes(
-            'FMLCorePluginContainsFMLMod': true,
-            'ForceLoadAsMod': true,
-            'TweakClass': 'org.spongepowered.asm.launch.MixinTweaker',
-            'MixinConfigs': "mixins.${modid}.json",
-            'FMLCorePlugin': "${tweaker}"
-    )
-}
-
-tasks.reobfJar.dependsOn(tasks.shadowJar)
-
-processResources {
-    inputs.property "version", project.version
-    inputs.property "mcversion", project.minecraft.version
-
-    from(sourceSets.main.resources.srcDirs) {
-        include 'mcmod.info'
-
-        expand 'version': project.version, 'mcversion': project.minecraft.version
+    from {
+        configurations.embed.collect { it.isDirectory() ? it : zipTree(it) }
+    } {
+        exclude "META-INF/MANIFSET.MF", "META-INF/maven/**", "META-INF/*.RSA", "META-INF/*.SF"
     }
 
-    from(sourceSets.main.resources.srcDirs) {
-        exclude 'mcmod.info'
+    manifest {
+        attributes "ForceLoadAsMod": "true"
+        attributes "TweakClass": "org.spongepowered.asm.launch.MixinTweaker"
+        attributes "TweakOrder": "0"
     }
 }
 
-task sourcesJar(type: Jar, dependsOn: classes) {
-    classifier "sources"
-    from sourceSets.main.allSource
-}
-
-artifacts {
-    archives jar
-    archives shadowJar
-    archives sourcesJar
-}
+jar.finalizedBy('reobfJar')

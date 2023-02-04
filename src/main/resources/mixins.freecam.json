@@ -1,16 +1,17 @@
 {
-  "required": true,
-  "compatibilityLevel": "JAVA_8",
-  "package": "com.zergatul.freecam.mixins",
-  "refmap": "mixins.freecam.refmap.json",
-  "verbose": true,
-  "client": [
-    "MixinAbstractClientPlayer",
-    "MixinEntityPlayerSP",
-    "MixinEntityRenderer",
-    "MixinGuiOverlayDebug",
-    "MixinRenderGlobal",
-    "MixinRenderManager",
-    "MixinViewFrustum"
-  ]
+    "required": true,
+    "minVersion": "0.7.0",
+    "compatibilityLevel": "JAVA_8",
+    "package": "com.zergatul.freecam.mixins",
+    "refmap": "refmap.freecam.json",
+    "client": [
+        "MixinAbstractClientPlayer",
+        "MixinEntityPlayerSP",
+        "MixinEntityRenderer",
+        "MixinGuiOverlayDebug",
+        "MixinNetworkRegistry",
+        "MixinRenderGlobal",
+        "MixinRenderManager",
+        "MixinViewFrustum"
+    ]
 }

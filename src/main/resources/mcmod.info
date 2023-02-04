@@ -1,18 +1,16 @@
 [
-  {
-    "modid": "freecam",
-    "name": "FreeCam by Zergatul",
-    "description": "Use F6 to toggle FreeCam, or change key bind in the settings.",
-    "version": "${version}",
-    "mcversion": "${mcversion}",
-    "url": "https://www.curseforge.com/minecraft/mc-mods/freecam-by-zergatul",
-    "updateUrl": "",
-    "authorList": [
-      "Zergatul"
-    ],
-    "credits": "AxstSoftware, PumpkinXD",
-    "logoFile": "",
-    "screenshots": [],
-    "dependencies": []
-  }
+{
+  "modid": "${mod_id}",
+  "name": "${mod_name}",
+  "description": "${mod_description}",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "https://www.curseforge.com/minecraft/mc-mods/freecam-by-zergatul",
+  "updateUrl": "",
+  "authorList": ["Zergatul"],
+  "credits": "",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": []
+}
 ]
