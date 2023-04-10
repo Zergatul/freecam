@@ -1,17 +1,18 @@
 package com.zergatul.freecam.common.mixins;
 
 import com.zergatul.freecam.common.ChatCommandManager;
-import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.network.chat.Component;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(ClientPacketListener.class)
-public abstract class MixinClientPacketListener {
+@Mixin(LocalPlayer.class)
+public abstract class MixinLocalPlayer {
 
-    @Inject(at = @At("HEAD"), method = "sendChat(Ljava/lang/String;)V", cancellable = true)
-    private void onSendChatMessage(String message, CallbackInfo info) {
+    @Inject(at = @At("HEAD"), method = "chatSigned(Ljava/lang/String;Lnet/minecraft/network/chat/Component;)V", cancellable = true)
+    private void onChatSigned(String message, Component preview, CallbackInfo info) {
         if (ChatCommandManager.instance.handleChatMessage(message)) {
             info.cancel();
         }

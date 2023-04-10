@@ -6,12 +6,12 @@
   "compatibilityLevel": "JAVA_17",
   "client": [
     "MixinCamera",
-    "MixinClientPacketListener",
     "MixinDebugScreenOverlay",
     "MixinEntity",
     "MixinGameRenderer",
     "MixinGui",
     "MixinLevelRenderer",
+    "MixinLocalPlayer",
     "MixinMinecraft",
     "MixinMouseHandler",
     "MixinOptions"

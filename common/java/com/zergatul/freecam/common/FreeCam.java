@@ -2,6 +2,9 @@ package com.zergatul.freecam.common;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
+import com.mojang.math.Matrix4f;
+import com.mojang.math.Quaternion;
+import com.mojang.math.Vector3f;
 import com.zergatul.freecam.ModApiWrapper;
 import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
@@ -20,9 +23,6 @@ import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Matrix4f;
-import org.joml.Quaternionf;
-import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11;
 
 import java.util.List;
@@ -34,7 +34,7 @@ public class FreeCam {
     public static final FreeCam instance = new FreeCam();
 
     private final Minecraft mc = Minecraft.getInstance();
-    private final Quaternionf rotation = new Quaternionf(0.0F, 0.0F, 0.0F, 1.0F);
+    private final Quaternion rotation = new Quaternion(0.0F, 0.0F, 0.0F, 1.0F);
     private final Vector3f forwards = new Vector3f(0.0F, 0.0F, 1.0F);
     private final Vector3f up = new Vector3f(0.0F, 1.0F, 0.0F);
     private final Vector3f left = new Vector3f(1.0F, 0.0F, 0.0F);
@@ -417,10 +417,15 @@ public class FreeCam {
     }
 
     private void calculateVectors() {
-        rotation.rotationYXZ(-yRot * ((float)Math.PI / 180F), xRot * ((float)Math.PI / 180F), 0.0F);
-        forwards.set(0.0F, 0.0F, 1.0F).rotate(rotation);
-        up.set(0.0F, 1.0F, 0.0F).rotate(rotation);
-        left.set(1.0F, 0.0F, 0.0F).rotate(rotation);
+        rotation.set(0.0F, 0.0F, 0.0F, 1.0F);
+        rotation.mul(Vector3f.YP.rotationDegrees(-yRot));
+        rotation.mul(Vector3f.XP.rotationDegrees(xRot));
+        forwards.set(0.0F, 0.0F, 1.0F);
+        forwards.transform(rotation);
+        up.set(0.0F, 1.0F, 0.0F);
+        up.transform(rotation);
+        left.set(1.0F, 0.0F, 0.0F);
+        left.transform(rotation);
     }
 
     private double combineMovement(double velocity, double impulse, double frameTime, double acceleration, double slowdown) {

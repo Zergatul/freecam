@@ -4,7 +4,6 @@ import com.zergatul.freecam.common.FreeCam;
 import com.zergatul.freecam.common.WrappedRegistry;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.core.Registry;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 
@@ -12,7 +11,7 @@ public class ModApiWrapper {
 
     public static final ModApiWrapper instance = new ModApiWrapper();
 
-    public final WrappedRegistry<Block> BLOCKS = new VanillaWrapperRegistry<>(BuiltInRegistries.BLOCK);
+    public final WrappedRegistry<Block> BLOCKS = new VanillaWrapperRegistry<>(Registry.BLOCK);
 
     private ModApiWrapper() {
 
