@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 public abstract class MixinGui {
 
     @Redirect(
-            method = "renderCrosshair(Lcom/mojang/blaze3d/vertex/PoseStack;)V",
+            method = "renderCrosshair(Lnet/minecraft/client/gui/GuiGraphics;)V",
             at = @At(value = "INVOKE", target = "Lnet/minecraft/client/CameraType;isFirstPerson()Z"))
     private boolean onRenderCrosshairIsFirstPerson(CameraType cameraType) {
         return FreeCam.instance.onRenderCrosshairIsFirstPerson(cameraType);

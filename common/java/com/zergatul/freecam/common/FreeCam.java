@@ -476,6 +476,6 @@ public class FreeCam {
     }
 
     private static class SharedVertexBuffer {
-        public static final VertexBuffer instance = new VertexBuffer();
+        public static final VertexBuffer instance = new VertexBuffer(VertexBuffer.Usage.DYNAMIC);
     }
 }
