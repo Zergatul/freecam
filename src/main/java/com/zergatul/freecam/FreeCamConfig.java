@@ -16,11 +16,13 @@ public class FreeCamConfig {
     public double maxSpeed;
     public double slowdownFactor;
     public boolean renderHands;
+    public boolean target;
 
     public FreeCamConfig() {
         acceleration = DefaultAcceleration;
         maxSpeed = DefaultMaxSpeed;
         slowdownFactor = DefaultSlowdownFactor;
+        target = true;
     }
 
     public void clamp() {
