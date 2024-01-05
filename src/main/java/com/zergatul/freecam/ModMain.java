@@ -19,6 +19,7 @@ public class ModMain {
         ClientRegistry.registerKeyBinding(KeyBindingsController.toggleFreeCam);
         ClientRegistry.registerKeyBinding(KeyBindingsController.toggleCameraLock);
         ClientRegistry.registerKeyBinding(KeyBindingsController.toggleEyeLock);
+        ClientRegistry.registerKeyBinding(KeyBindingsController.toggleFollowCam);
         MinecraftForge.EVENT_BUS.register(ModApiWrapper.instance);
     }
 }

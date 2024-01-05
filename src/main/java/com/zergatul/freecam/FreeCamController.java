@@ -48,6 +48,8 @@ public class FreeCamController {
     private boolean freecamHitResultPicking;
     private boolean cameraLock;
     private boolean eyeLock;
+    private boolean followCamera;
+    private double followDeltaX, followDeltaY, followDeltaZ;
     private boolean gameRendererPicking;
 
     private FreeCamController() {
@@ -86,7 +88,9 @@ public class FreeCamController {
     }
 
     public void toggleCameraLock() {
-        if (active) {
+        assert mc.player != null;
+
+        if (active && !followCamera) {
             cameraLock = !cameraLock;
             if (cameraLock) {
                 mc.player.input = playerInput;
@@ -97,8 +101,33 @@ public class FreeCamController {
     }
 
     public void toggleEyeLock() {
-        if (active) {
+        if (active && !followCamera) {
             eyeLock = !eyeLock;
+        }
+    }
+
+    public void toggleFollowCamera() {
+        assert mc.player != null;
+
+        if (active) {
+            followCamera = !followCamera;
+            if (followCamera) {
+                mc.player.input = playerInput;
+                cameraLock = false;
+                eyeLock = false;
+
+                Entity entity = mc.getCameraEntity();
+                if (entity == null) {
+                    return;
+                }
+
+                Vec3 pos = entity.getEyePosition();
+                followDeltaX = x - pos.x;
+                followDeltaY = y - pos.y;
+                followDeltaZ = z - pos.z;
+            } else {
+                mc.player.input = freecamInput;
+            }
         }
     }
 
@@ -115,6 +144,7 @@ public class FreeCamController {
         active = true;
         cameraLock = false;
         eyeLock = false;
+        followCamera = false;
         oldCameraType = mc.options.getCameraType();
         playerInput = mc.player.input;
         mc.player.input = freecamInput = new Input();
@@ -145,6 +175,8 @@ public class FreeCamController {
     }
 
     public void disable() {
+        assert mc.player != null;
+
         if (!active) {
             return;
         }
@@ -174,6 +206,9 @@ public class FreeCamController {
         }
         while (KeyBindingsController.toggleEyeLock.consumeClick()) {
             toggleEyeLock();
+        }
+        while (KeyBindingsController.toggleFollowCam.consumeClick()) {
+            toggleFollowCamera();
         }
     }
 
@@ -286,7 +321,7 @@ public class FreeCamController {
     }
 
     public void onPlayerTurn(LocalPlayer player, double yRot, double xRot) {
-        if (active && !cameraLock) {
+        if (active && !cameraLock && !followCamera) {
             if (!eyeLock) {
                 this.xRot += (float) xRot * 0.15F;
                 this.yRot += (float) yRot * 0.15F;
@@ -299,7 +334,7 @@ public class FreeCamController {
     }
 
     public boolean onRenderCrosshairIsFirstPerson(CameraType cameraType) {
-        if (active && !cameraLock && !eyeLock && config.target) {
+        if (active && !cameraLock && !eyeLock && !followCamera && config.target) {
             return true;
         } else {
             return cameraType.isFirstPerson();
@@ -307,7 +342,7 @@ public class FreeCamController {
     }
 
     public boolean onRenderItemInHandIsFirstPerson(CameraType cameraType) {
-        if (active && config.renderHands && !cameraLock && !eyeLock) {
+        if (active && config.renderHands && !cameraLock && !eyeLock && !followCamera) {
             return true;
         } else {
             return cameraType.isFirstPerson();
@@ -328,34 +363,44 @@ public class FreeCamController {
         float frameTime = (currTime - lastTime) / 1e9f;
         lastTime = currTime;
 
-        Input input = playerInput;
-        float forwardImpulse = !cameraLock ? (input.up ? 1 : 0) + (input.down ? -1 : 0) : 0;
-        float leftImpulse = !cameraLock ? (input.left ? 1 : 0) + (input.right ? -1 : 0) : 0;
-        float upImpulse = !cameraLock ? ((input.jumping ? 1 : 0) + (input.shiftKeyDown ? -1 : 0)) : 0;
-        double slowdown = Math.pow(config.slowdownFactor, frameTime);
-        forwardVelocity = combineMovement(forwardVelocity, forwardImpulse, frameTime, config.acceleration, slowdown);
-        leftVelocity = combineMovement(leftVelocity, leftImpulse, frameTime, config.acceleration, slowdown);
-        upVelocity = combineMovement(upVelocity, upImpulse, frameTime, config.acceleration, slowdown);
+        if (followCamera) {
+            Entity entity = mc.getCameraEntity();
+            if (entity != null) {
+                Vec3 pos = entity.getEyePosition(partialTicks);
+                x = pos.x + followDeltaX;
+                y = pos.y + followDeltaY;
+                z = pos.z + followDeltaZ;
+            }
+        } else {
+            Input input = playerInput;
+            float forwardImpulse = !cameraLock ? (input.up ? 1 : 0) + (input.down ? -1 : 0) : 0;
+            float leftImpulse = !cameraLock ? (input.left ? 1 : 0) + (input.right ? -1 : 0) : 0;
+            float upImpulse = !cameraLock ? ((input.jumping ? 1 : 0) + (input.shiftKeyDown ? -1 : 0)) : 0;
+            double slowdown = Math.pow(config.slowdownFactor, frameTime);
+            forwardVelocity = combineMovement(forwardVelocity, forwardImpulse, frameTime, config.acceleration, slowdown);
+            leftVelocity = combineMovement(leftVelocity, leftImpulse, frameTime, config.acceleration, slowdown);
+            upVelocity = combineMovement(upVelocity, upImpulse, frameTime, config.acceleration, slowdown);
 
-        double dx = (double) this.forwards.x() * forwardVelocity + (double) this.left.x() * leftVelocity;
-        double dy = (double) this.forwards.y() * forwardVelocity + upVelocity + (double) this.left.y() * leftVelocity;
-        double dz = (double) this.forwards.z() * forwardVelocity + (double) this.left.z() * leftVelocity;
-        dx *= frameTime;
-        dy *= frameTime;
-        dz *= frameTime;
-        double speed = new Vec3(dx, dy, dz).length() / frameTime;
-        if (speed > config.maxSpeed) {
-            double factor = config.maxSpeed / speed;
-            forwardVelocity *= factor;
-            leftVelocity *= factor;
-            upVelocity *= factor;
-            dx *= factor;
-            dy *= factor;
-            dz *= factor;
+            double dx = (double) this.forwards.x() * forwardVelocity + (double) this.left.x() * leftVelocity;
+            double dy = (double) this.forwards.y() * forwardVelocity + upVelocity + (double) this.left.y() * leftVelocity;
+            double dz = (double) this.forwards.z() * forwardVelocity + (double) this.left.z() * leftVelocity;
+            dx *= frameTime;
+            dy *= frameTime;
+            dz *= frameTime;
+            double speed = new Vec3(dx, dy, dz).length() / frameTime;
+            if (speed > config.maxSpeed) {
+                double factor = config.maxSpeed / speed;
+                forwardVelocity *= factor;
+                leftVelocity *= factor;
+                upVelocity *= factor;
+                dx *= factor;
+                dy *= factor;
+                dz *= factor;
+            }
+            x += dx;
+            y += dy;
+            z += dz;
         }
-        x += dx;
-        y += dy;
-        z += dz;
 
         applyEyeLock(partialTicks);
     }
@@ -372,7 +417,7 @@ public class FreeCamController {
     }
 
     public boolean shouldOverrideCameraEntityPosition(Entity entity) {
-        if (active && !cameraLock && !eyeLock && config.target) {
+        if (active && !cameraLock && !eyeLock && !followCamera && config.target) {
             return entity == mc.getCameraEntity() && gameRendererPicking || freecamHitResultPicking;
         } else {
             return false;
@@ -391,7 +436,7 @@ public class FreeCamController {
         if (!active) {
             return;
         }
-        if (cameraLock || eyeLock) {
+        if (cameraLock || eyeLock || followCamera) {
             return;
         }
         if (!config.target) {
