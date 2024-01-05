@@ -53,6 +53,8 @@ public class FreeCam {
     private boolean freecamHitResultPicking;
     private boolean cameraLock;
     private boolean eyeLock;
+    private boolean followCamera;
+    private double followDeltaX, followDeltaY, followDeltaZ;
     private boolean gameRendererPicking;
     private boolean moveAlongPath;
     private long pathStartTime;
@@ -102,7 +104,9 @@ public class FreeCam {
     }
 
     public void toggleCameraLock() {
-        if (active) {
+        assert mc.player != null;
+
+        if (active && !followCamera) {
             cameraLock = !cameraLock;
             if (cameraLock) {
                 mc.player.input = playerInput;
@@ -113,8 +117,33 @@ public class FreeCam {
     }
 
     public void toggleEyeLock() {
-        if (active) {
+        if (active && !followCamera) {
             eyeLock = !eyeLock;
+        }
+    }
+
+    public void toggleFollowCamera() {
+        assert mc.player != null;
+
+        if (active) {
+            followCamera = !followCamera;
+            if (followCamera) {
+                mc.player.input = playerInput;
+                cameraLock = false;
+                eyeLock = false;
+
+                Entity entity = mc.getCameraEntity();
+                if (entity == null) {
+                    return;
+                }
+
+                Vec3 pos = entity.getEyePosition();
+                followDeltaX = x - pos.x;
+                followDeltaY = y - pos.y;
+                followDeltaZ = z - pos.z;
+            } else {
+                mc.player.input = freecamInput;
+            }
         }
     }
 
@@ -131,6 +160,7 @@ public class FreeCam {
         active = true;
         cameraLock = false;
         eyeLock = false;
+        followCamera = false;
         oldCameraType = mc.options.getCameraType();
         playerInput = mc.player.input;
         mc.player.input = freecamInput = new Input();
@@ -161,6 +191,8 @@ public class FreeCam {
     }
 
     public void disable() {
+        assert mc.player != null;
+
         if (!active) {
             return;
         }
@@ -191,13 +223,16 @@ public class FreeCam {
         while (KeyBindings.toggleEyeLock.consumeClick()) {
             toggleEyeLock();
         }
+        while (KeyBindings.toggleFollowCam.consumeClick()) {
+            toggleFollowCamera();
+        }
         while (KeyBindings.startPath.consumeClick()) {
             startPath();
         }
     }
 
     public void onPlayerTurn(LocalPlayer player, double yRot, double xRot) {
-        if (active && !cameraLock) {
+        if (active && !cameraLock && !followCamera) {
             if (!eyeLock && !moveAlongPath) {
                 this.xRot += (float) xRot * 0.15F;
                 this.yRot += (float) yRot * 0.15F;
@@ -210,7 +245,7 @@ public class FreeCam {
     }
 
     public boolean onRenderCrosshairIsFirstPerson(CameraType cameraType) {
-        if (active && !cameraLock && !eyeLock && config.target) {
+        if (active && !cameraLock && !eyeLock && !followCamera && config.target) {
             return true;
         } else {
             return cameraType.isFirstPerson();
@@ -218,7 +253,7 @@ public class FreeCam {
     }
 
     public boolean onRenderItemInHandIsFirstPerson(CameraType cameraType) {
-        if (active && config.renderHands && !cameraLock && !eyeLock) {
+        if (active && config.renderHands && !cameraLock && !eyeLock && !followCamera) {
             return true;
         } else {
             return cameraType.isFirstPerson();
@@ -249,6 +284,14 @@ public class FreeCam {
                 z = entry.position().z;
                 xRot = (float) entry.xRot();
                 yRot = (float) entry.yRot();
+            }
+        } else if (followCamera) {
+            Entity entity = mc.getCameraEntity();
+            if (entity != null) {
+                Vec3 pos = entity.getEyePosition(partialTicks);
+                x = pos.x + followDeltaX;
+                y = pos.y + followDeltaY;
+                z = pos.z + followDeltaZ;
             }
         } else {
             Input input = playerInput;
@@ -339,7 +382,7 @@ public class FreeCam {
     }
 
     public boolean shouldOverrideCameraEntityPosition(Entity entity) {
-        if (active && !cameraLock && !eyeLock && config.target) {
+        if (active && !cameraLock && !eyeLock && !followCamera && config.target) {
             return entity == mc.getCameraEntity() && gameRendererPicking || freecamHitResultPicking;
         } else {
             return false;
@@ -358,7 +401,7 @@ public class FreeCam {
         if (!active) {
             return;
         }
-        if (cameraLock || eyeLock) {
+        if (cameraLock || eyeLock || followCamera) {
             return;
         }
         if (!config.target) {

@@ -23,6 +23,7 @@ public class ModMain {
         event.register(KeyBindings.toggleFreeCam);
         event.register(KeyBindings.toggleCameraLock);
         event.register(KeyBindings.toggleEyeLock);
+        event.register(KeyBindings.toggleFollowCam);
         event.register(KeyBindings.startPath);
     }
 }
