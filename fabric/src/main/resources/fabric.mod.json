@@ -4,7 +4,7 @@
   "version": "${version}",
 
   "name": "FreeCam",
-  "description": "Use F6 to toggle FreeCam, or change key bind in the settings.\n\nYou can control mod settings from in-game chat:\n.freecam - displays current settings\n.freecam speed 100 - set maximum speed, blocks/second (default 50)\n.freecam acc 100 - set acceleration, blocks/second^2 (default 50)\n.freecam slow 0.001 - set slowdown speed when you release all buttons. Every second speed is multiplied by this value (default 0.01)\n.freecam hands 1 - show hands while in freecam (default 0)\n.freecam target 0 - disable custom targeting in freecam (default 1)",
+  "description": "Use F6 to toggle FreeCam, or change key bind in the settings.\n\nYou can control mod settings from in-game chat:\n.freecam - displays current settings\n.freecam speed 100 - set maximum speed, blocks/second (default 50)\n.freecam acc 100 - set acceleration, blocks/second^2 (default 50)\n.freecam slow 0.001 - set slowdown speed when you release all buttons. Every second speed is multiplied by this value (default 0.01)\n.freecam hands 1 - show hands while in freecam (default 0)\n.freecam target 0 - disable custom targeting in freecam (default 1)\n.freecam movement spectator - change movement mode to spectator-like\n.freecam movement default - to revent back movement mode",
   "authors": [
     "Zergatul"
   ],

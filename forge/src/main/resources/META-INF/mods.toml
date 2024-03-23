@@ -49,6 +49,8 @@ You can control mod settings from in-game chat:
 .freecam slow 0.001 - set slowdown speed when you release all buttons. Every second speed is multiplied by this value (default 0.01)
 .freecam hands 1 - show hands while in freecam (default 0)
 .freecam target 0 - disable custom targeting in freecam (default 1)
+.freecam movement spectator - change movement mode to spectator-like
+.freecam movement default - to revent back movement mode
 '''
 # A dependency - use the . to indicate dependency for a specific modid. Dependencies are optional.
 [[dependencies.${mod_id}]] #optional

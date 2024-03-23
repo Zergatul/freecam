@@ -460,7 +460,7 @@ public class FreeCam {
     }
 
     private void calculateVectors() {
-        rotation.rotationYXZ(-yRot * ((float)Math.PI / 180F), xRot * ((float)Math.PI / 180F), 0.0F);
+        rotation.rotationYXZ(-yRot * ((float)Math.PI / 180F), (config.spectatorMovement ? 0 : xRot) * ((float)Math.PI / 180F), 0.0F);
         forwards.set(0.0F, 0.0F, 1.0F).rotate(rotation);
         up.set(0.0F, 1.0F, 0.0F).rotate(rotation);
         left.set(1.0F, 0.0F, 0.0F).rotate(rotation);

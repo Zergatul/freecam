@@ -23,8 +23,9 @@ public class ChatCommandManager {
             new ParserEntry(Pattern.compile("^\\.freecam\\s+(maxspeed|max|speed|s)\\s+(?<value>\\S+)$"), setDoubleValue(this::setMaxSpeed)),
             new ParserEntry(Pattern.compile("^\\.freecam\\s+(acceleration|acc|a)\\s+(?<value>\\S+)$"), setDoubleValue(this::setAcceleration)),
             new ParserEntry(Pattern.compile("^\\.freecam\\s+(slowdown|slow|sd)\\s+(?<value>\\S+)$"), setDoubleValue(this::setSlowDown)),
-            new ParserEntry(Pattern.compile("^\\.freecam\\s+(hands)\s+(?<value>\\S+)$"), setDoubleValue(this::setHands)),
-            new ParserEntry(Pattern.compile("^\\.freecam\\s+(target)\s+(?<value>\\S+)$"), setDoubleValue(this::setTarget)),
+            new ParserEntry(Pattern.compile("^\\.freecam\\s+(hands)\\s+(?<value>\\S+)$"), setDoubleValue(this::setHands)),
+            new ParserEntry(Pattern.compile("^\\.freecam\\s+(target)\\s+(?<value>\\S+)$"), setDoubleValue(this::setTarget)),
+            new ParserEntry(Pattern.compile("^\\.freecam\\s+(movement)\\s+(?<value>\\S+)$"), this::setMovementMode),
     };
 
     private ChatCommandManager() {
@@ -68,7 +69,8 @@ public class ChatCommandManager {
                 .append(Component.literal("- acceleration=" + config.acceleration).withStyle(ChatFormatting.WHITE)).append("\n")
                 .append(Component.literal("- slowdown=" + config.slowdownFactor).withStyle(ChatFormatting.WHITE)).append("\n")
                 .append(Component.literal("- hands=" + (config.renderHands ? 1 : 0)).withStyle(ChatFormatting.WHITE)).append("\n")
-                .append(Component.literal("- target=" + (config.target ? 1 : 0)).withStyle(ChatFormatting.WHITE)));
+                .append(Component.literal("- target=" + (config.target ? 1 : 0)).withStyle(ChatFormatting.WHITE)).append("\n")
+                .append(Component.literal("- movement=" + (config.spectatorMovement ? "spectator" : "default")).withStyle(ChatFormatting.WHITE)));
     }
 
     private void showPathInfo(FreeCamConfig config, Matcher matcher) {
@@ -98,10 +100,26 @@ public class ChatCommandManager {
         });
     }
 
+    private void setMovementMode(FreeCamConfig config, Matcher matcher) {
+        switch (matcher.group("value")) {
+            case "default" -> {
+                config.spectatorMovement = false;
+                saveConfig(config);
+            }
+            case "spectator" -> {
+                config.spectatorMovement = true;
+                saveConfig(config);
+            }
+            default -> {
+                printError("Allowed values: default, spectator");
+            }
+        }
+    }
+
     private void addPathPoint(FreeCamConfig config, double value) {
         FreeCamPath path = FreeCam.instance.getPath();
         boolean added = false;
-        if (path.get().size() == 0) {
+        if (path.get().isEmpty()) {
             added = FreeCam.instance.getPath().add(0);
         } else {
             if (value < 0 || value > 3600000) {
@@ -210,7 +228,11 @@ public class ChatCommandManager {
                 .append("\n")
                 .append(Component.literal("- ").withStyle(ChatFormatting.WHITE))
                 .append(Component.literal(".freecam target 0").withStyle(ChatFormatting.YELLOW))
-                .append(Component.literal(" disable custom targeting in freecam. Values: 0/1.").withStyle(ChatFormatting.WHITE)));
+                .append(Component.literal(" disable custom targeting in freecam. Values: 0/1.").withStyle(ChatFormatting.WHITE))
+                .append("\n")
+                .append(Component.literal("- ").withStyle(ChatFormatting.WHITE))
+                .append(Component.literal(".freecam movement spectator").withStyle(ChatFormatting.YELLOW))
+                .append(Component.literal(" change movement mode to spectator-like. Values: default/spectator.").withStyle(ChatFormatting.WHITE)));
     }
 
     private void printSystemMessage(Component component) {
