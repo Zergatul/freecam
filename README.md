@@ -23,6 +23,6 @@ make all
 ```
 
 #### Manuell
-> ![NOTE] You may consider using the Makefile
+> [!NOTE] You may consider using the Makefile
 
 To build mod by yourself go to Forge or Fabric directory and run `gradlew build`.
