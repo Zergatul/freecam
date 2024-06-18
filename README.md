@@ -1,33 +1,24 @@
 # Freecam
 
 ### Build
+To build the mod you need to have JDK 21 installed.
 
-#### Using Makefile
-Check if you have `make` installed by running `make --version` in your Command Prompt/Terminal. If not, install it.
-
-to Build the Mod execute the Command for your specific Modloader.
-The jar will be located in `<modloader>/build/libs/`.
-
-for Fabric:
-```shell
-make build-fabric
-```
-
-for Forge:
-```shell
-make build-forge
-```
-
-for Both
-```shell
-make all
-```
-
-#### Using Gradlew
 > [!NOTE] 
 > Use the Gradlew.bat for Windows
 
-To build mod by yourself go to Forge or Fabric directory and run `gradlew build`.
+First change the directory to the fabric or forge folder with `cd <modloader>`.
+
+Then run the following command to build the mod.
+
+```shell
+# Windows
+gradlew.bat build
+
+# Linux/Unix
+./gradlew build
+```
+
+The mod will be built in the `<modloader>/build/libs` folder.
 
 ### Downloading
 you can find the latest builds on the [GitHub Actions](https://github.com/Zergatul/freecam/actions) page.
