@@ -1,6 +1,6 @@
 name: Build
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   build:
@@ -14,7 +14,7 @@ jobs:
         uses: actions/setup-java@v2
         with:
           distribution: 'adopt'
-          java-version: '21'
+          java-version: '17'
 
       - name: Run make all
         run: make all
@@ -23,10 +23,10 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: fabric-artifact
-          path: fabric/build/libs/*.jar
+          path: fabric/build/libs/!(*-sources).jar
 
       - name: Archive production artifacts
         uses: actions/upload-artifact@v2
         with:
           name: forge-artifact
-          path: forge/build/libs/*.jar
+          path: forge/build/libs/!(*-sources).jar
