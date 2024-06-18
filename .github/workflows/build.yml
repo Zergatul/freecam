@@ -16,8 +16,14 @@ jobs:
           distribution: 'adopt'
           java-version: '21'
 
-      - name: Run make all
-        run: make all
+      - name: Permissions to Run gradlew
+        run: 	chmod +x ./fabric/gradlew && chmod +x ./annotation-processor/gradlew && chmod +x ./forge/gradlew
+
+      - name: Build Fabric
+        run: cd fabric && ./gradlew build && cd ..
+
+      - name: Build Forge
+        run: cd forge && ./gradlew build && cd ..
 
       - name: Remove Sources Jar
         run: rm -f fabric/build/libs/*-sources.jar && rm -f forge/build/libs/*-sources.jar
