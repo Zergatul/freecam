@@ -1,0 +1,32 @@
+name: Build
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup Java
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: '17'
+
+      - name: Run make all
+        run: make all
+
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: fabric-artifact
+          path: fabric/build/libs/*.jar
+
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: forge-artifact
+          path: forge/build/libs/*.jar
