@@ -29,6 +29,7 @@ endif
 
 all: build-fabric build-forge
 
+
 # Give Gradlew files permission to be executed (Unix Only)
 ifeq ($(OSFLAG),UNIX)
 chmod:
@@ -36,6 +37,7 @@ chmod:
 	chmod +x ./annotation-processor/gradlew
 	chmod +x ./forge/gradlew
 endif
+
 build-fabric: chmod
 	@echo "Building Fabric..."
 	@cd fabric && $(GRADLEW) build
