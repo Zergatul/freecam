@@ -86,6 +86,14 @@ public class FreeCam {
         return yRot;
     }
 
+    public Vec3 getPos() {
+        return new Vec3(x, y, z);
+    }
+
+    public BlockPos getBlockPos() {
+        return new BlockPos((int) x, (int) y, (int) z);
+    }
+
     public FreeCamConfig getConfig() {
         return config;
     }
