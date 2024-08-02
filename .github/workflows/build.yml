@@ -1,6 +1,6 @@
 name: Build
 
-on: [push, pull_request]
+on: [push]
 
 jobs:
   build:
@@ -8,7 +8,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Setup Java
         uses: actions/setup-java@v2
@@ -17,25 +17,50 @@ jobs:
           java-version: '21'
 
       - name: Permissions to Run gradlew
-        run: 	chmod +x ./fabric/gradlew && chmod +x ./annotation-processor/gradlew && chmod +x ./forge/gradlew
+        run: |
+          chmod +x ./annotation-processor/gradlew
+          chmod +x ./fabric/gradlew
+          chmod +x ./forge/gradlew
+          chmod +x ./neoforge/gradlew
 
       - name: Build Fabric
-        run: cd fabric && ./gradlew build && cd ..
+        run: |
+          cd fabric
+          ./gradlew build
+          cd ..
 
       - name: Build Forge
-        run: cd forge && ./gradlew build && cd ..
+        run: |
+          cd forge
+          ./gradlew build
+          cd ..
 
-      - name: Remove Sources Jar
-        run: rm -f fabric/build/libs/*-sources.jar && rm -f forge/build/libs/*-sources.jar
+      - name: Build NeoForge
+        run: |
+          cd neoforge
+          ./gradlew build
+          cd ..
 
-      - name: Archive production artifacts
-        uses: actions/upload-artifact@v2
+      - name: Upload fabric artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: fabric-artifact
+          name: fabric
           path: fabric/build/libs/*.jar
+          compression-level: 0
+          if-no-files-found: error
 
-      - name: Archive production artifacts
-        uses: actions/upload-artifact@v2
+      - name: Upload forge artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: forge-artifact
+          name: forge
           path: forge/build/libs/*.jar
+          compression-level: 0
+          if-no-files-found: error
+
+      - name: Upload neoforge artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: neoforge
+          path: neoforge/build/libs/*.jar
+          compression-level: 0
+          if-no-files-found: error

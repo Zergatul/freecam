@@ -1,0 +1,22 @@
+{
+  "required": true,
+  "minVersion": "0.8.2",
+  "package": "com.zergatul.freecam.mixins",
+  "refmap": "zergatulfreecam.mixins-refmap.json",
+  "compatibilityLevel": "JAVA_17",
+  "plugin": "com.zergatul.mixin.MixinPlugin",
+  "client": [
+    "neoforge.MixinCamera",
+
+    "MixinClientPacketListener",
+    "MixinDebugScreenOverlay",
+    "MixinEntity",
+    "MixinGameRenderer",
+    "MixinGui",
+    "MixinLevelRenderer",
+    "MixinLivingEntityRenderer",
+    "MixinMinecraft",
+    "MixinMouseHandler",
+    "MixinOptions"
+  ]
+}
