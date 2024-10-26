@@ -15,17 +15,17 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 @Mod("zergatulfreecam")
 public class ModMain {
 
-    public ModMain() {
-        FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setup);
-        FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setupKeybindings);
+    public ModMain(FMLJavaModLoadingContext context) {
+        context.getModEventBus().addListener(this::setup);
+        context.getModEventBus().addListener(this::setupKeybindings);
+
+        context.registerExtensionPoint(
+                ConfigScreenHandler.ConfigScreenFactory.class,
+                () -> new ConfigScreenHandler.ConfigScreenFactory(FreeCamSettingsScreen::new));
     }
 
     private void setup(final FMLCommonSetupEvent event) {
         MinecraftForge.EVENT_BUS.register(ModApiWrapper.instance);
-
-        ModLoadingContext.get().registerExtensionPoint(
-                ConfigScreenHandler.ConfigScreenFactory.class,
-                () -> new ConfigScreenHandler.ConfigScreenFactory(FreeCamSettingsScreen::new));
     }
 
     private void setupKeybindings(final RegisterKeyMappingsEvent event) {

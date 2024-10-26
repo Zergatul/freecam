@@ -1,5 +1,6 @@
 package com.zergatul.freecam.mixins;
 
+import com.mojang.blaze3d.resource.GraphicsResourceAllocator;
 import com.zergatul.freecam.FreeCam;
 import net.minecraft.client.Camera;
 import net.minecraft.client.DeltaTracker;
@@ -30,6 +31,7 @@ public abstract class MixinLevelRenderer {
 
     @Inject(at = @At("TAIL"), method = "renderLevel")
     private void onRenderLevel(
+            GraphicsResourceAllocator allocator,
             DeltaTracker delta,
             boolean renderBlockOutline,
             Camera camera,

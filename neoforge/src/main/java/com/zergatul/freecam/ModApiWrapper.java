@@ -38,7 +38,7 @@ public class ModApiWrapper {
 
         @Override
         public T getValue(ResourceLocation id) {
-            return registry.get(id);
+            return registry.getValue(id);
         }
     }
 }

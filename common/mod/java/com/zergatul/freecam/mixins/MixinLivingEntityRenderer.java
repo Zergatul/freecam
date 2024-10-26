@@ -12,7 +12,7 @@ public abstract class MixinLivingEntityRenderer {
 
     @SuppressWarnings("unused")
     @ModifyMethodReturnValue(
-            method = "shouldShowName(Lnet/minecraft/world/entity/LivingEntity;)Z",
+            method = "shouldShowName",
             at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;getCameraEntity()Lnet/minecraft/world/entity/Entity;"))
     private static Entity onShouldShowNameChangeCameraEntity(Entity entity) {
         return FreeCam.instance.shouldShowMyName() ? null : entity;

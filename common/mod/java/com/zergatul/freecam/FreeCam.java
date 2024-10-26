@@ -5,11 +5,11 @@ import com.mojang.blaze3d.vertex.*;
 import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
 import net.minecraft.client.*;
-import net.minecraft.client.player.Input;
-import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.player.ClientInput;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Input;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.phys.BlockHitResult;
@@ -18,7 +18,6 @@ import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
-import org.lwjgl.opengl.GL11;
 
 import java.util.List;
 import java.util.Locale;
@@ -40,8 +39,8 @@ public class FreeCam {
     private final FreeCamConfig config = ConfigRepository.instance.load();
     private boolean active;
     private CameraType oldCameraType;
-    private Input playerInput;
-    private Input freecamInput;
+    private ClientInput playerInput;
+    private ClientInput freecamInput;
     private double x, y, z;
     private float yRot, xRot;
     private double forwardVelocity;
@@ -180,7 +179,7 @@ public class FreeCam {
             dontMoveFreeCamBefore = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(REMEMBER_STATE_DELAY_MS);
         }
 
-        float partialTicks = mc.getTimer().getGameTimeDeltaPartialTick(true);
+        float partialTicks = mc.getDeltaTracker().getGameTimeDeltaPartialTick(true);
         Vec3 pos = entity.getEyePosition(partialTicks);
         x = pos.x;
         y = pos.y;
@@ -310,10 +309,10 @@ public class FreeCam {
                 z = pos.z + followDeltaZ;
             }
         } else {
-            Input input = playerInput;
-            float forwardImpulse = !cameraLock ? (input.up ? 1 : 0) + (input.down ? -1 : 0) : 0;
-            float leftImpulse = !cameraLock ? (input.left ? 1 : 0) + (input.right ? -1 : 0) : 0;
-            float upImpulse = !cameraLock ? ((input.jumping ? 1 : 0) + (input.shiftKeyDown ? -1 : 0)) : 0;
+            ClientInput input = playerInput;
+            float forwardImpulse = !cameraLock ? (input.keyPresses.forward() ? 1 : 0) + (input.keyPresses.backward() ? -1 : 0) : 0;
+            float leftImpulse = !cameraLock ? (input.keyPresses.left() ? 1 : 0) + (input.keyPresses.right() ? -1 : 0) : 0;
+            float upImpulse = !cameraLock ? ((input.keyPresses.jump() ? 1 : 0) + (input.keyPresses.shift() ? -1 : 0)) : 0;
             double slowdown = Math.pow(config.slowdownFactor, frameTime);
             forwardVelocity = combineMovement(forwardVelocity, forwardImpulse, frameTime, config.acceleration, slowdown);
             leftVelocity = combineMovement(leftVelocity, leftImpulse, frameTime, config.acceleration, slowdown);
@@ -457,20 +456,22 @@ public class FreeCam {
         gameRendererPicking = false;
     }
 
-    private Input createFreeCamInput(Input playerInput) {
+    private ClientInput createFreeCamInput(ClientInput playerInput) {
         if (config.rememberInputState) {
-            Input input = new Input();
-            input.up = playerInput.up;
-            input.down = playerInput.down;
-            input.left = playerInput.left;
-            input.right = playerInput.right;
-            input.jumping = playerInput.jumping;
-            input.shiftKeyDown = playerInput.shiftKeyDown;
+            ClientInput input = new ClientInput();
+            input.keyPresses = new Input(
+                    playerInput.keyPresses.forward(),
+                    playerInput.keyPresses.backward(),
+                    playerInput.keyPresses.left(),
+                    playerInput.keyPresses.right(),
+                    playerInput.keyPresses.jump(),
+                    playerInput.keyPresses.shift(),
+                    playerInput.keyPresses.sprint());
             input.forwardImpulse = playerInput.forwardImpulse;
             input.leftImpulse = playerInput.leftImpulse;
             return input;
         } else {
-            return new Input();
+            return new ClientInput();
         }
     }
 
@@ -535,7 +536,7 @@ public class FreeCam {
     }
 
     private void renderLines(BufferBuilder bufferBuilder, Matrix4f pose, Matrix4f projection) {
-        RenderSystem.disableCull();
+        /*RenderSystem.disableCull();
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         RenderSystem.disableDepthTest();
@@ -550,10 +551,10 @@ public class FreeCam {
 
         RenderSystem.disableBlend();
         RenderSystem.enableCull();
-        RenderSystem.enableDepthTest();
+        RenderSystem.enableDepthTest();*/
     }
 
     private static class SharedVertexBuffer {
-        public static final VertexBuffer instance = new VertexBuffer(VertexBuffer.Usage.DYNAMIC);
+        //public static final VertexBuffer instance = new VertexBuffer(VertexBuffer.Usage.DYNAMIC);
     }
 }
