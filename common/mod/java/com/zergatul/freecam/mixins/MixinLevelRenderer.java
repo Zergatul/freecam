@@ -6,7 +6,6 @@ import net.minecraft.client.Camera;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
-import net.minecraft.client.renderer.LightTexture;
 import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -36,7 +35,6 @@ public abstract class MixinLevelRenderer {
             boolean renderBlockOutline,
             Camera camera,
             GameRenderer gameRenderer,
-            LightTexture lightTexture,
             Matrix4f pose,
             Matrix4f projection,
             CallbackInfo info

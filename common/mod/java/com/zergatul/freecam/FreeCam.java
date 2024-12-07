@@ -347,7 +347,7 @@ public class FreeCam {
     public void onClientTickStart() {
         if (active) {
             disableKey(mc.options.keyTogglePerspective);
-            playerInput.tick(false, 0);
+            playerInput.tick();
         }
     }
 
