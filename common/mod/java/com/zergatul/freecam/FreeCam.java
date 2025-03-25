@@ -14,6 +14,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
@@ -458,18 +459,14 @@ public class FreeCam {
 
     private ClientInput createFreeCamInput(ClientInput playerInput) {
         if (config.rememberInputState) {
-            ClientInput input = new ClientInput();
-            input.keyPresses = new Input(
+            return new FreeCamInput(new Input(
                     playerInput.keyPresses.forward(),
                     playerInput.keyPresses.backward(),
                     playerInput.keyPresses.left(),
                     playerInput.keyPresses.right(),
                     playerInput.keyPresses.jump(),
                     playerInput.keyPresses.shift(),
-                    playerInput.keyPresses.sprint());
-            input.forwardImpulse = playerInput.forwardImpulse;
-            input.leftImpulse = playerInput.leftImpulse;
-            return input;
+                    playerInput.keyPresses.sprint()));
         } else {
             return new ClientInput();
         }
@@ -556,5 +553,23 @@ public class FreeCam {
 
     private static class SharedVertexBuffer {
         //public static final VertexBuffer instance = new VertexBuffer(VertexBuffer.Usage.DYNAMIC);
+    }
+
+    private static class FreeCamInput extends ClientInput {
+
+        public FreeCamInput(Input input) {
+            this.keyPresses = input;
+            this.moveVector = new Vec2(
+                    calcImpulse(input.left(), input.right()),
+                    calcImpulse(input.forward(), input.backward())).normalized();
+        }
+
+        private static float calcImpulse(boolean b1, boolean b2) {
+            if (b1 == b2) {
+                return 0.0F;
+            } else {
+                return b1 ? 1.0F : -1.0F;
+            }
+        }
     }
 }
