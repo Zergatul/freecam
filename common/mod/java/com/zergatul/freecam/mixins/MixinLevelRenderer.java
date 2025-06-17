@@ -1,17 +1,10 @@
 package com.zergatul.freecam.mixins;
 
-import com.mojang.blaze3d.resource.GraphicsResourceAllocator;
 import com.zergatul.freecam.FreeCam;
-import net.minecraft.client.Camera;
-import net.minecraft.client.DeltaTracker;
-import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
-import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(LevelRenderer.class)
 public abstract class MixinLevelRenderer {
@@ -28,17 +21,19 @@ public abstract class MixinLevelRenderer {
         }
     }
 
-    @Inject(at = @At("TAIL"), method = "renderLevel")
+    /*@Inject(at = @At("TAIL"), method = "renderLevel")
     private void onRenderLevel(
             GraphicsResourceAllocator allocator,
             DeltaTracker delta,
             boolean renderBlockOutline,
             Camera camera,
-            GameRenderer gameRenderer,
             Matrix4f pose,
             Matrix4f projection,
+            GpuBufferSlice buffer,
+            Vector4f vector,
+            boolean flag,
             CallbackInfo info
     ) {
         FreeCam.instance.onRenderWorldLast(pose, projection, camera);
-    }
+    }*/
 }

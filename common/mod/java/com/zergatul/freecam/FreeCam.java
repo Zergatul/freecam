@@ -366,7 +366,7 @@ public class FreeCam {
             return;
         }
 
-        Tesselator tesselator = Tesselator.getInstance();
+        /*Tesselator tesselator = Tesselator.getInstance();
         BufferBuilder bufferBuilder = tesselator.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
         RenderSystem.setShaderColor(1f, 1.0f, 1f, 1f);
 
@@ -387,7 +387,7 @@ public class FreeCam {
                     .setColor(1, 1, 1, 1f);
         }
 
-        renderLines(bufferBuilder, pose, projectionMatrix);
+        renderLines(bufferBuilder, pose, projectionMatrix);*/
     }
 
     private void startPath() {
