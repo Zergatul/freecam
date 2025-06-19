@@ -3,7 +3,6 @@ package com.zergatul.freecam;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.IForgeRegistry;
 
@@ -13,18 +12,11 @@ public class ModApiWrapper {
 
     public final WrappedRegistry<Block> BLOCKS = new ForgeWrappedRegistry<>(ForgeRegistries.BLOCKS);
 
-    private ModApiWrapper() {
+    private ModApiWrapper() {}
 
-    }
-
-    @SubscribeEvent
-    public void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase == TickEvent.Phase.START) {
-            FreeCam.instance.onClientTickStart();
-        }
-        if (event.phase == TickEvent.Phase.END) {
-            ChatCommandManager.instance.onClientTickEnd();
-        }
+    public void init() {
+        TickEvent.ClientTickEvent.Pre.BUS.addListener(event -> FreeCam.instance.onClientTickStart());
+        TickEvent.ClientTickEvent.Post.BUS.addListener(event -> ChatCommandManager.instance.onClientTickEnd());
     }
 
     private record ForgeWrappedRegistry<T>(IForgeRegistry<T> registry) implements WrappedRegistry<T> {

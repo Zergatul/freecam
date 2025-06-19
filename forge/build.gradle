@@ -16,7 +16,7 @@ plugins {
     id 'eclipse'
     id 'idea'
     id 'maven-publish'
-    id 'net.minecraftforge.gradle' version '[6.0.16,6.2)'
+    id 'net.minecraftforge.gradle' version '[6.0.36,6.2)'
 }
 apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'org.spongepowered.mixin'
@@ -38,7 +38,6 @@ minecraft {
             workingDirectory project.file('run')
             arg "-mixin.config=zergatul.freecam.mixin.json"
 
-            property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'debug'
             property 'forge.enabledGameTestNamespaces', mod_id
         }
@@ -59,21 +58,40 @@ sourceSets {
 }
 
 repositories {
+    mavenCentral()
+    maven {
+        name = 'Forge'
+        url = 'https://maven.minecraftforge.net'
+    }
+    maven {
+        name = 'Minecraft libraries'
+        url = 'https://libraries.minecraft.net'
+    }
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = 'Sponge'
+                url = 'https://repo.spongepowered.org/repository/maven-public'
+            }
+        }
+        filter {
+            includeGroupAndSubgroups('org.spongepowered')
+        }
+    }
 }
 
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
     annotationProcessor files('../annotation-processor/build/libs/annotation-processor.jar')
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
-    // Hack fix for now, force jopt-simple to be exactly 5.0.4 because Mojang ships that version, but some transtive dependencies request 6.0+ 
-    implementation('net.sf.jopt-simple:jopt-simple:5.0.4') { version { strictly '5.0.4' } }
+    annotationProcessor 'net.minecraftforge:eventbus-validator:7.0-beta.8'
 }
 
 mixin {
     add sourceSets.main, "zergatul.freecam.mixin-refmap.json"
 }
 
-tasks.named('processResources', ProcessResources).configure {
+tasks.named('processResources', ProcessResources) {
     var replaceProperties = [
             minecraft_version: minecraft_version, minecraft_version_range: minecraft_version_range,
             forge_version: forge_version, forge_version_range: forge_version_range,
@@ -88,7 +106,7 @@ tasks.named('processResources', ProcessResources).configure {
     }
 }
 
-tasks.named('jar', Jar).configure {
+tasks.named('jar', Jar) {
     archiveFileName = "zergatul.freecam-$mod_version-forge-${minecraft_version}.jar"
 
     manifest {
@@ -99,7 +117,7 @@ tasks.named('jar', Jar).configure {
             'Implementation-Title'    : project.name,
             'Implementation-Version'  : project.jar.archiveVersion,
             'Implementation-Vendor'   : mod_authors,
-            "MixinConfigs"            : "zergatul.freecam.mixin.json"
+            'MixinConfigs'            : 'zergatul.freecam.mixin.json'
         ])
     }
 }
