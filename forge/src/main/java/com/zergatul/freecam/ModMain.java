@@ -3,7 +3,6 @@ package com.zergatul.freecam;
 import com.zergatul.freecam.ui.FreeCamSettingsScreen;
 import net.minecraftforge.client.ConfigScreenHandler;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
-import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.bus.BusGroup;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
@@ -19,6 +18,7 @@ public class ModMain {
         FMLCommonSetupEvent.getBus(modBusGroup).addListener(this::setup);
         RegisterKeyMappingsEvent.getBus(modBusGroup).addListener(this::setupKeybindings);
 
+        DebugScreenExtensions.register();
         context.registerExtensionPoint(
                 ConfigScreenHandler.ConfigScreenFactory.class,
                 () -> new ConfigScreenHandler.ConfigScreenFactory(FreeCamSettingsScreen::new));

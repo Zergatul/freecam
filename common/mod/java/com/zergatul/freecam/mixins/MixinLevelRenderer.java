@@ -11,8 +11,8 @@ public abstract class MixinLevelRenderer {
 
     @ModifyArg(
             method = "renderLevel",
-            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/LevelRenderer;setupRender(Lnet/minecraft/client/Camera;Lnet/minecraft/client/renderer/culling/Frustum;ZZ)V"),
-            index = 3)
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/LevelRenderer;cullTerrain(Lnet/minecraft/client/Camera;Lnet/minecraft/client/renderer/culling/Frustum;Z)V"),
+            index = 2)
     private boolean onCallSetupRender(boolean isSpectator) {
         if (FreeCam.instance.isActive()) {
             return true;
@@ -20,20 +20,4 @@ public abstract class MixinLevelRenderer {
             return isSpectator;
         }
     }
-
-    /*@Inject(at = @At("TAIL"), method = "renderLevel")
-    private void onRenderLevel(
-            GraphicsResourceAllocator allocator,
-            DeltaTracker delta,
-            boolean renderBlockOutline,
-            Camera camera,
-            Matrix4f pose,
-            Matrix4f projection,
-            GpuBufferSlice buffer,
-            Vector4f vector,
-            boolean flag,
-            CallbackInfo info
-    ) {
-        FreeCam.instance.onRenderWorldLast(pose, projection, camera);
-    }*/
 }

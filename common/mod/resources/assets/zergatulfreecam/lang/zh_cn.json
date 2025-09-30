@@ -1,5 +1,5 @@
 {
-  "category.zergatul.freecam": "自由视角",
+  "key.category.freecam.common": "自由视角",
   "key.zergatul.freecam.toggle": "切换自由视角",
   "key.zergatul.freecam.cameralock.toggle": "锁定当前视角",
   "key.zergatul.freecam.eyelock.toggle": "视角锁定人物", 

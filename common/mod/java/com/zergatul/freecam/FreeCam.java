@@ -1,12 +1,13 @@
 package com.zergatul.freecam;
 
-import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
 import net.minecraft.client.*;
+import net.minecraft.client.gui.components.debug.DebugScreenDisplayer;
 import net.minecraft.client.player.ClientInput;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Input;
@@ -20,6 +21,7 @@ import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -407,16 +409,15 @@ public class FreeCam {
         }
     }
 
-    public void onRenderDebugScreenLeft(List<String> list) {
-        if (active) {
-            list.add("");
+    public void onShowDebugScreenCoordinates(ResourceLocation group, DebugScreenDisplayer displayer) {
+        if (active && mc.level != null) {
             String coordinates = String.format(Locale.ROOT, "Free Cam XYZ: %.3f / %.5f / %.3f", x, y, z);
-            list.add(coordinates);
+            displayer.addToGroup(group, coordinates);
         }
     }
 
-    public void onRenderDebugScreenRight(List<String> list) {
-        if (!active) {
+    public void onShowLookingAtBlock(ResourceLocation group, DebugScreenDisplayer displayer) {
+        if (!active || mc.level == null || mc.player == null) {
             return;
         }
         if (cameraLock || eyeLock || followCamera) {
@@ -433,15 +434,18 @@ public class FreeCam {
             if (hit.getType() == HitResult.Type.BLOCK) {
                 BlockPos pos = ((BlockHitResult)hit).getBlockPos();
                 BlockState state = mc.level.getBlockState(pos);
-                list.add("");
-                list.add(ChatFormatting.UNDERLINE + "Free Cam Targeted Block: " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ());
-                list.add(String.valueOf(ModApiWrapper.instance.BLOCKS.getKey(state.getBlock())));
+
+                List<String> lines = new ArrayList<>();
+                lines.add(ChatFormatting.UNDERLINE + "Free Cam Targeted Block: " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ());
+                lines.add(String.valueOf(ModApiWrapper.instance.BLOCKS.getKey(state.getBlock())));
 
                 for (var entry: state.getValues().entrySet()) {
-                    list.add(getPropertyValueString(entry));
+                    lines.add(getPropertyValueString(entry));
                 }
 
-                state.getTags().map(tag -> "#" + tag.location()).forEach(list::add);
+                state.getTags().map(tag -> "#" + tag.location()).forEach(lines::add);
+
+                displayer.addToGroup(group, lines);
             }
         }
         finally {

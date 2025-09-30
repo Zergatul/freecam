@@ -2,7 +2,6 @@ package com.zergatul.freecam.mixins;
 
 import com.zergatul.freecam.FreeCam;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.ReceivingLevelScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.multiplayer.ClientLevel;
 import org.spongepowered.asm.mixin.Mixin;
@@ -19,7 +18,7 @@ public abstract class MixinMinecraft {
     }
 
     @Inject(at = @At("HEAD"), method = "setLevel")
-    private void onSetLevel(ClientLevel level, ReceivingLevelScreen.Reason reason, CallbackInfo ci) {
+    private void onSetLevel(ClientLevel level, CallbackInfo ci) {
         FreeCam.instance.onWorldUnload();
     }
 

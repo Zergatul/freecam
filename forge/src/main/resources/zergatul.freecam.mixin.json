@@ -8,7 +8,6 @@
   "client": [
     "MixinCamera",
     "MixinClientPacketListener",
-    "MixinDebugScreenOverlay",
     "MixinEntity",
     "MixinGameRenderer",
     "MixinGui",

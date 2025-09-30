@@ -15,6 +15,7 @@ public class ModMain {
     public ModMain(IEventBus bus, ModContainer container) {
         bus.addListener(this::onRegisterKeybindings);
         NeoForge.EVENT_BUS.register(ModApiWrapper.instance);
+        DebugScreenExtensions.register();
         container.registerExtensionPoint(
                 IConfigScreenFactory.class,
                 (cont, screen) -> new FreeCamSettingsScreen(screen));
