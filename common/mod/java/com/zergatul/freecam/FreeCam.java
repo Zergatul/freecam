@@ -204,11 +204,11 @@ public class FreeCam {
     }
 
     public void disable() {
-        assert mc.player != null;
-
         if (!active) {
             return;
         }
+
+        assert mc.player != null;
 
         active = false;
         CameraType cameraType = mc.options.getCameraType();
@@ -354,7 +354,7 @@ public class FreeCam {
         }
     }
 
-    public void onWorldUnload() {
+    public void onLevelChange() {
         disable();
     }
 

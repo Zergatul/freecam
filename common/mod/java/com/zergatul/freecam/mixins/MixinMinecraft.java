@@ -14,12 +14,17 @@ public abstract class MixinMinecraft {
 
     @Inject(at = @At("HEAD"), method = "clearClientLevel")
     private void onClearClientLevel(Screen screen, CallbackInfo ci) {
-        FreeCam.instance.onWorldUnload();
+        FreeCam.instance.onLevelChange();
+    }
+
+    @Inject(at = @At("HEAD"), method = "disconnect")
+    private void onDisconnect(Screen screen, boolean clearResourcePacks, CallbackInfo ci) {
+        FreeCam.instance.onLevelChange();
     }
 
     @Inject(at = @At("HEAD"), method = "setLevel")
     private void onSetLevel(ClientLevel level, CallbackInfo ci) {
-        FreeCam.instance.onWorldUnload();
+        FreeCam.instance.onLevelChange();
     }
 
     @Inject(at = @At("TAIL"), method = "handleKeybinds")
