@@ -13,8 +13,8 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v2
         with:
-          distribution: 'adopt'
-          java-version: '21'
+          distribution: adopt
+          java-version: 21
 
       - name: Permissions to Run gradlew
         run: |

@@ -3,7 +3,7 @@ package com.zergatul.freecam;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.Block;
 
 public class ModApiWrapper {
@@ -12,9 +12,7 @@ public class ModApiWrapper {
 
     public final WrappedRegistry<Block> BLOCKS = new VanillaWrapperRegistry<>(BuiltInRegistries.BLOCK);
 
-    private ModApiWrapper() {
-
-    }
+    private ModApiWrapper() {}
 
     public void setup() {
         ClientTickEvents.START_CLIENT_TICK.register(client -> FreeCam.instance.onClientTickStart());
@@ -24,12 +22,12 @@ public class ModApiWrapper {
     private record VanillaWrapperRegistry<T>(Registry<T> registry) implements WrappedRegistry<T> {
 
         @Override
-        public ResourceLocation getKey(T value) {
+        public Identifier getKey(T value) {
             return registry.getKey(value);
         }
 
         @Override
-        public T getValue(ResourceLocation id) {
+        public T getValue(Identifier id) {
             return registry.getValue(id);
         }
     }

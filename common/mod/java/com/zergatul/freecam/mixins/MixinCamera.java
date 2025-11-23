@@ -3,7 +3,7 @@ package com.zergatul.freecam.mixins;
 import com.zergatul.freecam.FreeCam;
 import net.minecraft.client.Camera;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -21,10 +21,10 @@ public abstract class MixinCamera {
 
     // skip all position/rotation calculations, but don't skip other fields setup logic
     @Inject(
-            at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;isPassenger()Z"),
-            method = "setup(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/world/entity/Entity;ZZF)V",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;isPassenger()Z", ordinal = 0),
+            method = "setup",
             cancellable = true)
-    private void onSetup(BlockGetter level, Entity entity, boolean detached, boolean mirrored, float partialTicks, CallbackInfo info) {
+    private void onSetup(Level level, Entity entity, boolean detached, boolean mirrored, float partialTicks, CallbackInfo info) {
         FreeCam controller = FreeCam.instance;
         if (FreeCam.instance.isActive()) {
             setRotation(controller.getYRot(), controller.getXRot());

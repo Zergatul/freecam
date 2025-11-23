@@ -19,7 +19,7 @@ repositories {
 dependencies {
     implementation("org.ow2.asm:asm:9.6")
     implementation("org.ow2.asm:asm-tree:9.6")
-    implementation("org.spongepowered:mixin:0.8.5")
+    implementation("org.spongepowered:mixin:0.8.7")
 }
 
 tasks.withType<JavaCompile> {

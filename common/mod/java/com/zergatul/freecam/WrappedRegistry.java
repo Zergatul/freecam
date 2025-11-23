@@ -1,8 +1,8 @@
 package com.zergatul.freecam;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public interface WrappedRegistry<T> {
-    ResourceLocation getKey(T value);
-    T getValue(ResourceLocation id);
+    Identifier getKey(T value);
+    T getValue(Identifier id);
 }

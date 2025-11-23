@@ -1,6 +1,6 @@
 package com.zergatul.freecam;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -22,12 +22,12 @@ public class ModApiWrapper {
     private record ForgeWrappedRegistry<T>(IForgeRegistry<T> registry) implements WrappedRegistry<T> {
 
         @Override
-        public ResourceLocation getKey(T value) {
+        public Identifier getKey(T value) {
             return registry.getKey(value);
         }
 
         @Override
-        public T getValue(ResourceLocation id) {
+        public T getValue(Identifier id) {
             return registry.getValue(id);
         }
     }

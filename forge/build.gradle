@@ -16,7 +16,7 @@ plugins {
     id 'eclipse'
     id 'idea'
     id 'maven-publish'
-    id 'net.minecraftforge.gradle' version '[6.0.36,6.2)'
+    id 'net.minecraftforge.gradle' version '[6.0.46,6.2)'
 }
 apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'org.spongepowered.mixin'
@@ -88,7 +88,7 @@ dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
     annotationProcessor files('../annotation-processor/build/libs/annotation-processor.jar')
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
-    annotationProcessor 'net.minecraftforge:eventbus-validator:7.0-beta.8'
+    annotationProcessor 'net.minecraftforge:eventbus-validator:7.0-beta.12'
 }
 
 mixin {

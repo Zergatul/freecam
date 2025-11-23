@@ -2,13 +2,13 @@ package com.zergatul.freecam;
 
 import com.mojang.blaze3d.vertex.*;
 import net.minecraft.ChatFormatting;
-import net.minecraft.Util;
 import net.minecraft.client.*;
 import net.minecraft.client.gui.components.debug.DebugScreenDisplayer;
 import net.minecraft.client.player.ClientInput;
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
+import net.minecraft.util.Util;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Input;
 import net.minecraft.world.level.block.state.BlockState;
@@ -20,6 +20,7 @@ import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -162,7 +163,7 @@ public class FreeCam {
         }
 
         Entity entity = mc.getCameraEntity();
-        if (entity == null) {
+        if (mc.player == null || entity == null) {
             return;
         }
 
@@ -350,12 +351,22 @@ public class FreeCam {
     public void onClientTickStart() {
         if (active) {
             disableKey(mc.options.keyTogglePerspective);
-            playerInput.tick();
+
+            if (mc.player != null && mc.player.input != playerInput) {
+                // don't tick here, since vanilla code will run tick during LocalPlayer.aiStep
+                playerInput.tick();
+            }
         }
     }
 
     public void onLevelChange() {
         disable();
+    }
+
+    public void onFovOverride(boolean isLevelRender, CallbackInfoReturnable<Float> info) {
+        if (active && isLevelRender) {
+            info.setReturnValue((float) mc.options.fov().get());
+        }
     }
 
     public void onRenderWorldLast(Matrix4f pose, Matrix4f projectionMatrix, Camera camera) {
@@ -409,14 +420,14 @@ public class FreeCam {
         }
     }
 
-    public void onShowDebugScreenCoordinates(ResourceLocation group, DebugScreenDisplayer displayer) {
+    public void onShowDebugScreenCoordinates(Identifier group, DebugScreenDisplayer displayer) {
         if (active && mc.level != null) {
             String coordinates = String.format(Locale.ROOT, "Free Cam XYZ: %.3f / %.5f / %.3f", x, y, z);
             displayer.addToGroup(group, coordinates);
         }
     }
 
-    public void onShowLookingAtBlock(ResourceLocation group, DebugScreenDisplayer displayer) {
+    public void onShowLookingAtBlock(Identifier group, DebugScreenDisplayer displayer) {
         if (!active || mc.level == null || mc.player == null) {
             return;
         }

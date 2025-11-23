@@ -16,7 +16,7 @@ public class ModMain {
         BusGroup modBusGroup = context.getModBusGroup();
 
         FMLCommonSetupEvent.getBus(modBusGroup).addListener(this::setup);
-        RegisterKeyMappingsEvent.getBus(modBusGroup).addListener(this::setupKeybindings);
+        RegisterKeyMappingsEvent.BUS.addListener(this::setupKeybindings);
 
         DebugScreenExtensions.register();
         context.registerExtensionPoint(

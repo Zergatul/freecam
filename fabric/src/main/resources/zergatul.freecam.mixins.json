@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_21",
   "plugin": "com.zergatul.mixin.MixinPlugin",
   "client": [
+    "DebugScreenEntriesAccessor",
     "MixinCamera",
     "MixinClientPacketListener",
     "MixinEntity",

@@ -1,21 +1,21 @@
 package com.zergatul.freecam;
 
+import com.zergatul.freecam.mixins.DebugScreenEntriesAccessor;
 import net.minecraft.client.gui.components.debug.DebugScreenDisplayer;
-import net.minecraft.client.gui.components.debug.DebugScreenEntries;
 import net.minecraft.client.gui.components.debug.DebugScreenEntry;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.LevelChunk;
 import org.jetbrains.annotations.Nullable;
 
 public class DebugScreenExtensions {
 
-    private static final ResourceLocation POSITION = ResourceLocation.fromNamespaceAndPath("freecam", "position");
-    private static final ResourceLocation LOOKING_AT_BLOCK = ResourceLocation.fromNamespaceAndPath("freecam", "looking_at_block");
+    private static final Identifier POSITION = Identifier.fromNamespaceAndPath("freecam", "position");
+    private static final Identifier LOOKING_AT_BLOCK = Identifier.fromNamespaceAndPath("freecam", "looking_at_block");
 
     public static void register() {
-        DebugScreenEntries.register(POSITION, new FreeCamPositionDebugScreenEntry());
-        DebugScreenEntries.register(LOOKING_AT_BLOCK, new FreeCamLookingAtBlockDebugScreenEntry());
+        DebugScreenEntriesAccessor.register_ZFC(POSITION, new FreeCamPositionDebugScreenEntry());
+        DebugScreenEntriesAccessor.register_ZFC(LOOKING_AT_BLOCK, new FreeCamLookingAtBlockDebugScreenEntry());
     }
 
     private static class FreeCamPositionDebugScreenEntry implements DebugScreenEntry {
