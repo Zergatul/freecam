@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 public abstract class MixinLevelRenderer {
 
     @ModifyArg(
-            method = "renderLevel",
+            method = "update",
             at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/LevelRenderer;cullTerrain(Lnet/minecraft/client/Camera;Lnet/minecraft/client/renderer/culling/Frustum;Z)V"),
             index = 2)
     private boolean onCallSetupRender(boolean isSpectator) {

@@ -20,12 +20,8 @@ import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 public class FreeCam {
@@ -56,7 +52,7 @@ public class FreeCam {
     private boolean eyeLock;
     private boolean followCamera;
     private double followDeltaX, followDeltaY, followDeltaZ;
-    private boolean gameRendererPicking;
+    private boolean picking;
     private boolean moveAlongPath;
     private long pathStartTime;
     private long dontMoveFreeCamBefore;
@@ -171,13 +167,9 @@ public class FreeCam {
         cameraLock = false;
         eyeLock = false;
         followCamera = false;
-        oldCameraType = mc.options.getCameraType();
         playerInput = mc.player.input;
         mc.player.input = freecamInput = createFreeCamInput(playerInput);
-        mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
-        if (oldCameraType.isFirstPerson() != mc.options.getCameraType().isFirstPerson()) {
-            mc.gameRenderer.checkEntityPostEffect(mc.options.getCameraType().isFirstPerson() ? mc.getCameraEntity() : null);
-        }
+        switchCameraType(CameraType.THIRD_PERSON_BACK);
 
         if (config.rememberInputState) {
             dontMoveFreeCamBefore = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(REMEMBER_STATE_DELAY_MS);
@@ -212,13 +204,9 @@ public class FreeCam {
         assert mc.player != null;
 
         active = false;
-        CameraType cameraType = mc.options.getCameraType();
         mc.options.setCameraType(oldCameraType);
         mc.player.input = playerInput;
-        if (cameraType.isFirstPerson() != mc.options.getCameraType().isFirstPerson()) {
-            mc.gameRenderer.checkEntityPostEffect(mc.options.getCameraType().isFirstPerson() ? mc.getCameraEntity() : null);
-        }
-        oldCameraType = null;
+        switchCameraType(oldCameraType);
     }
 
     public void onHandleKeyBindings() {
@@ -363,12 +351,6 @@ public class FreeCam {
         disable();
     }
 
-    public void onFovOverride(boolean isLevelRender, CallbackInfoReturnable<Float> info) {
-        if (active && isLevelRender) {
-            info.setReturnValue((float) mc.options.fov().get());
-        }
-    }
-
     public void onRenderWorldLast(Matrix4f pose, Matrix4f projectionMatrix, Camera camera) {
         if (!active || moveAlongPath) {
             return;
@@ -414,7 +396,7 @@ public class FreeCam {
 
     public boolean shouldOverrideCameraEntityPosition(Entity entity) {
         if (active && !cameraLock && !eyeLock && !followCamera && config.target) {
-            return entity == mc.getCameraEntity() && gameRendererPicking || freecamHitResultPicking;
+            return entity == mc.getCameraEntity() && picking || freecamHitResultPicking;
         } else {
             return false;
         }
@@ -450,11 +432,8 @@ public class FreeCam {
                 lines.add(ChatFormatting.UNDERLINE + "Free Cam Targeted Block: " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ());
                 lines.add(String.valueOf(ModApiWrapper.instance.BLOCKS.getKey(state.getBlock())));
 
-                for (var entry: state.getValues().entrySet()) {
-                    lines.add(getPropertyValueString(entry));
-                }
-
-                state.getTags().map(tag -> "#" + tag.location()).forEach(lines::add);
+                state.getValues().forEach(value -> lines.add(getPropertyValueString(value)));
+                state.tags().map(tag -> "#" + tag.location()).forEach(lines::add);
 
                 displayer.addToGroup(group, lines);
             }
@@ -464,12 +443,12 @@ public class FreeCam {
         }
     }
 
-    public void onBeforeGameRendererPick() {
-        gameRendererPicking = true;
+    public void onBeforePick() {
+        picking = true;
     }
 
-    public void onAfterGameRendererPick() {
-        gameRendererPicking = false;
+    public void onAfterPick() {
+        picking = false;
     }
 
     private ClientInput createFreeCamInput(ClientInput playerInput) {
@@ -529,9 +508,9 @@ public class FreeCam {
         return velocity;
     }
 
-    private String getPropertyValueString(Map.Entry<Property<?>, Comparable<?>> p_94072_) {
-        Property<?> property = p_94072_.getKey();
-        Comparable<?> comparable = p_94072_.getValue();
+    private String getPropertyValueString(Property.Value<?> value) {
+        Property<?> property = value.property();
+        Object comparable = value.value();
         String s = Util.getPropertyName(property, comparable);
         if (Boolean.TRUE.equals(comparable)) {
             s = ChatFormatting.GREEN + s;
@@ -540,6 +519,15 @@ public class FreeCam {
         }
 
         return property.getName() + ": " + s;
+    }
+
+    private void switchCameraType(CameraType type) {
+        oldCameraType = mc.options.getCameraType();
+        mc.options.setCameraType(type);
+        if (oldCameraType.isFirstPerson() != mc.options.getCameraType().isFirstPerson()) {
+            mc.gameRenderer.checkEntityPostEffect(mc.options.getCameraType().isFirstPerson() ? mc.getCameraEntity() : null);
+        }
+        mc.levelRenderer.needsUpdate(); // copied from handleKeybinds()
     }
 
     private void disableKey(KeyMapping key) {

@@ -1,10 +1,7 @@
-import org.apache.tools.ant.taskdefs.condition.Os
-
 plugins {
     id 'java-library'
     id 'idea'
-    id 'maven-publish'
-    id 'net.neoforged.moddev' version '2.0.123'
+    id 'net.neoforged.moddev' version '2.0.141'
 }
 
 def commonProperties = new Properties()
@@ -23,25 +20,19 @@ tasks.named('wrapper', Wrapper).configure {
 version = mod_version
 group = mod_group_id
 
-repositories {
-    mavenLocal()
-}
-
 base {
     archivesName = mod_id
 }
 
-// Mojang ships Java 21 to end users starting in 1.20.5, so mods should target Java 21.
-java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
 
 neoForge {
     // Specify the version of NeoForge to use.
     version = project.neo_version
-
-    parchment {
-        mappingsVersion = project.parchment_mappings_version
-        minecraftVersion = project.parchment_minecraft_version
-    }
 
     // This line is optional. Access Transformers are automatically detected
     // accessTransformers = project.files('src/main/resources/META-INF/accesstransformer.cfg')
@@ -91,7 +82,6 @@ sourceSets {
         }
         resources {
             srcDir '../common/mod/resources'
-            srcDir 'src/generated/resources'
         }
     }
 }
@@ -105,29 +95,6 @@ configurations {
 }
 
 dependencies {
-    // Example optional mod dependency with JEI
-    // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
-    // compileOnly "mezz.jei:jei-${mc_version}-common-api:${jei_version}"
-    // compileOnly "mezz.jei:jei-${mc_version}-neoforge-api:${jei_version}"
-    // We add the full version to localRuntime, not runtimeOnly, so that we do not publish a dependency on it
-    // localRuntime "mezz.jei:jei-${mc_version}-neoforge:${jei_version}"
-
-    // Example mod dependency using a mod jar from ./libs with a flat dir repository
-    // This maps to ./libs/coolmod-${mc_version}-${coolmod_version}.jar
-    // The group id is ignored when searching -- in this case, it is "blank"
-    // implementation "blank:coolmod-${mc_version}:${coolmod_version}"
-
-    // Example mod dependency using a file as dependency
-    // implementation files("libs/coolmod-${mc_version}-${coolmod_version}.jar")
-
-    // Example project dependency using a sister or child project:
-    // implementation project(":myproject")
-
-    // For more info:
-    // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
-    // http://www.gradle.org/docs/current/userguide/dependency_management.html
-
-    //annotationProcessor files('../annotation-processor/build/libs/annotation-processor.jar')
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.
@@ -157,26 +124,6 @@ tasks.withType(ProcessResources).configureEach {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
-}
-
-tasks.register('buildAnnotationProcessor', {
-    doFirst {
-        def annotationProcessorJar = file('../annotation-processor/build/libs/annotation-processor.jar')
-        if (!annotationProcessorJar.exists()) {
-            println 'Annotation processor JAR not found. Building annotation processor...'
-            def buildResult = exec {
-                def gradlew = Os.isFamily(Os.FAMILY_WINDOWS) ? 'gradlew.bat' : 'gradlew'
-                commandLine "../annotation-processor/$gradlew", '-p', '../annotation-processor', 'build'
-            }
-            if (buildResult.exitValue != 0) {
-                throw new GradleException('Failed to build the annotation processor project.')
-            }
-        }
-    }
-})
-
-tasks.withType(JavaCompile).configureEach {
-    dependsOn('buildAnnotationProcessor')
 }
 
 tasks.named('jar', org.gradle.jvm.tasks.Jar).configure {

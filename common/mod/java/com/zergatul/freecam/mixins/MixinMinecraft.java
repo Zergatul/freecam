@@ -18,7 +18,7 @@ public abstract class MixinMinecraft {
     }
 
     @Inject(at = @At("HEAD"), method = "disconnect(Lnet/minecraft/client/gui/screens/Screen;ZZ)V")
-    private void onDisconnect(Screen screen, boolean clearResourcePacks, boolean stopSounds, CallbackInfo ci) {
+    private void onDisconnect(Screen screen, boolean keepResourcePacks, boolean stopSounds, CallbackInfo ci) {
         FreeCam.instance.onLevelChange();
     }
 
@@ -30,5 +30,15 @@ public abstract class MixinMinecraft {
     @Inject(at = @At("TAIL"), method = "handleKeybinds")
     private void onHandleKeyBindings(CallbackInfo info) {
         FreeCam.instance.onHandleKeyBindings();
+    }
+
+    @Inject(method = "pick", at = @At("HEAD"))
+    private void onBeforePick(float partialTicks, CallbackInfo info) {
+        FreeCam.instance.onBeforePick();
+    }
+
+    @Inject(method = "pick", at = @At("TAIL"))
+    private void onAfterPick(float partialTicks, CallbackInfo info) {
+        FreeCam.instance.onAfterPick();
     }
 }

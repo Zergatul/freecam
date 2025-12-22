@@ -14,30 +14,26 @@ jobs:
         uses: actions/setup-java@v2
         with:
           distribution: adopt
-          java-version: 21
-
-      - name: Permissions to Run gradlew
-        run: |
-          chmod +x ./annotation-processor/gradlew
-          chmod +x ./fabric/gradlew
-          chmod +x ./forge/gradlew
-          chmod +x ./neoforge/gradlew
+          java-version: 25
 
       - name: Build Fabric
         run: |
           cd fabric
+          chmod +x ./gradlew
           ./gradlew build
           cd ..
 
       - name: Build Forge
         run: |
           cd forge
+          chmod +x ./gradlew
           ./gradlew build
           cd ..
 
       - name: Build NeoForge
         run: |
           cd neoforge
+          chmod +x ./gradlew
           ./gradlew build
           cd ..
 

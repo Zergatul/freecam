@@ -15,6 +15,7 @@
   },
 
   "license": "MIT",
+  "icon": "assets/zergatulfreecam/icon.png",
 
   "environment": "client",
   "entrypoints": {
@@ -24,12 +25,9 @@
   "mixins": ["zergatul.freecam.mixins.json"],
 
   "depends": {
-    "fabricloader": ">=0.16.7",
-    "fabric": "*",
-    "minecraft": "~1.21.4",
-    "java": ">=21"
-  },
-  "suggests": {
-    "another-mod": "*"
+    "fabricloader": ">=0.18.3",
+    "minecraft": "~26.1-",
+    "java": ">=25",
+    "fabric-api": "*"
   }
 }

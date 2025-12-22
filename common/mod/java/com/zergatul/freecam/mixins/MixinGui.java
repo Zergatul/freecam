@@ -11,7 +11,7 @@ public abstract class MixinGui {
 
     @SuppressWarnings("unused")
     @ModifyMethodReturnValue(
-            method = "renderCrosshair",
+            method = "extractCrosshair",
             at = @At(value = "INVOKE", target = "Lnet/minecraft/client/CameraType;isFirstPerson()Z"))
     private static boolean onRenderCrosshairModifyIsFirstPerson(boolean value) {
         return FreeCam.instance.onRenderCrosshairModifyIsFirstPerson(value);

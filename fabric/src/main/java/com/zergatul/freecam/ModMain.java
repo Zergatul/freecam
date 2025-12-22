@@ -1,17 +1,17 @@
 package com.zergatul.freecam;
 
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 
 public class ModMain implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        KeyBindingHelper.registerKeyBinding(KeyBindings.toggleFreeCam);
-        KeyBindingHelper.registerKeyBinding(KeyBindings.toggleCameraLock);
-        KeyBindingHelper.registerKeyBinding(KeyBindings.toggleEyeLock);
-        KeyBindingHelper.registerKeyBinding(KeyBindings.toggleFollowCam);
-        KeyBindingHelper.registerKeyBinding(KeyBindings.startPath);
+        KeyMappingHelper.registerKeyMapping(KeyBindings.toggleFreeCam);
+        KeyMappingHelper.registerKeyMapping(KeyBindings.toggleCameraLock);
+        KeyMappingHelper.registerKeyMapping(KeyBindings.toggleEyeLock);
+        KeyMappingHelper.registerKeyMapping(KeyBindings.toggleFollowCam);
+        KeyMappingHelper.registerKeyMapping(KeyBindings.startPath);
 
         DebugScreenExtensions.register();
         ModApiWrapper.instance.setup();

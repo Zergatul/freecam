@@ -1,33 +1,16 @@
-import java.nio.file.Paths
-import org.apache.tools.ant.taskdefs.condition.Os
-
-buildscript {
-    repositories {
-        maven { url = 'https://repo.spongepowered.org/maven' }
-        mavenCentral()
-    }
-}
-
 plugins {
-    id 'fabric-loom' version '1.13-SNAPSHOT'
-    id 'maven-publish'
-}
-
-loom {
-    mixin {
-        useLegacyMixinAp = true
-    }
+    id 'net.fabricmc.fabric-loom' version "${loom_version}"
 }
 
 def commonProperties = new Properties()
 file('../common/gradle.properties').withInputStream { commonProperties.load(it) }
 ext.mod_version = commonProperties['mod_version']
 
-archivesBaseName = project.archives_base_name
-version = project.mod_version
 group = project.maven_group
+version = project.mod_version
 
-repositories {
+base {
+    archivesName = project.archives_base_name
 }
 
 sourceSets {
@@ -38,25 +21,14 @@ sourceSets {
         }
         resources {
             srcDir '../common/mod/resources'
-            srcDir 'src/generated/resources'
         }
     }
 }
 
 dependencies {
-    // To change the versions see the gradle.properties file
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    mappings loom.officialMojangMappings()
-    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-
-    // Fabric API. This is technically optional, but you probably want it anyway.
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-
-    // Uncomment the following line to enable the deprecated Fabric API modules.
-    // These are included in the Fabric API production distribution and allow you to update your mod to the latest modules at a later more convenient time.
-
-    // modImplementation "net.fabricmc.fabric-api:fabric-api-deprecated:${project.fabric_version}"
-    annotationProcessor files('../annotation-processor/build/libs/annotation-processor.jar')
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 }
 
 processResources {
@@ -68,46 +40,25 @@ processResources {
 }
 
 tasks.withType(JavaCompile).configureEach {
-    it.options.release = 21
+    it.options.release = 25
 }
 
 java {
     //withSourcesJar()
 
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
 }
 
 jar {
     from("LICENSE") {
-        rename { "${it}_${project.archivesBaseName}"}
+        rename { "${it}_${base.archivesName.get()}"}
     }
 
     exclude("com/terraformersmc/**")
 }
 
-tasks.register('buildAnnotationProcessor', {
-    doFirst {
-        def annotationProcessorJar = file('../annotation-processor/build/libs/annotation-processor.jar')
-        if (!annotationProcessorJar.exists()) {
-            println 'Annotation processor JAR not found. Building annotation processor...'
-            def buildResult = exec {
-                def gradlew = Os.isFamily(Os.FAMILY_WINDOWS) ? 'gradlew.bat' : 'gradlew'
-                commandLine "../annotation-processor/$gradlew", '-p', '../annotation-processor', 'build'
-            }
-            if (buildResult.exitValue != 0) {
-                throw new GradleException('Failed to build the annotation processor project.')
-            }
-        }
-    }
-})
-
-tasks.withType(JavaCompile).configureEach {
-    dependsOn('buildAnnotationProcessor')
-}
-
-remapJar {
-    afterEvaluate {
-        archiveFileName = "$archives_base_name-$mod_version-fabric-${minecraft_version}.jar"
-    }
+tasks.jar {
+    archiveFileName.set("${base.archivesName.get()}-${project.mod_version}-fabric-${project.minecraft_version}.jar")
 }

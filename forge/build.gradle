@@ -1,25 +1,9 @@
-import org.apache.tools.ant.taskdefs.condition.Os
-
-buildscript {
-    repositories {
-        maven { url = 'https://maven.minecraftforge.net' }
-        maven { url = 'https://repo.spongepowered.org/maven' }
-        mavenCentral()
-    }
-    dependencies {
-        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '5.1.+', changing: true
-        classpath 'org.spongepowered:mixingradle:0.7-SNAPSHOT'
-    }
-}
-
 plugins {
+    id 'java'
     id 'eclipse'
     id 'idea'
-    id 'maven-publish'
-    id 'net.minecraftforge.gradle' version '[6.0.46,6.2)'
+    id 'net.minecraftforge.gradle' version '[7.0.17,8)'
 }
-apply plugin: 'net.minecraftforge.gradle'
-apply plugin: 'org.spongepowered.mixin'
 
 def commonProperties = new Properties()
 file('../common/gradle.properties').withInputStream { commonProperties.load(it) }
@@ -28,24 +12,28 @@ def mod_version = commonProperties['mod_version']
 version = mod_version
 group = mod_group_id
 
-minecraft.reobf = false
-
-java.toolchain.languageVersion = JavaLanguageVersion.of(21)
-
-println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
 
 minecraft {
-    mappings channel: mapping_channel, version: mapping_version
-    copyIdeResources = true
     runs {
         client {
-            workingDirectory project.file('run')
-            arg "-mixin.config=zergatul.freecam.mixin.json"
+            workingDir = layout.projectDirectory.dir('run')
+            args "-mixin.config=zergatul.freecam.mixin.json"
 
-            property 'forge.logging.console.level', 'debug'
-            property 'forge.enabledGameTestNamespaces', mod_id
+            systemProperty 'forge.logging.console.level', 'debug'
+            systemProperty 'eventbus.api.strictRuntimeChecks', 'true'
         }
     }
+}
+
+repositories {
+    minecraft.mavenizer(it)
+    maven fg.forgeMaven
+    maven fg.minecraftLibsMaven
 }
 
 sourceSets {
@@ -61,38 +49,9 @@ sourceSets {
     }
 }
 
-repositories {
-    mavenCentral()
-    maven {
-        name = 'Forge'
-        url = 'https://maven.minecraftforge.net'
-    }
-    maven {
-        name = 'Minecraft libraries'
-        url = 'https://libraries.minecraft.net'
-    }
-    exclusiveContent {
-        forRepository {
-            maven {
-                name = 'Sponge'
-                url = 'https://repo.spongepowered.org/repository/maven-public'
-            }
-        }
-        filter {
-            includeGroupAndSubgroups('org.spongepowered')
-        }
-    }
-}
-
 dependencies {
-    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
-    annotationProcessor files('../annotation-processor/build/libs/annotation-processor.jar')
-    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
-    annotationProcessor 'net.minecraftforge:eventbus-validator:7.0-beta.12'
-}
-
-mixin {
-    add sourceSets.main, "zergatul.freecam.mixin-refmap.json"
+    implementation minecraft.dependency("net.minecraftforge:forge:${minecraft_version}-${forge_version}")
+    //annotationProcessor 'org.spongepowered:mixin:0.8.7:processor'
 }
 
 tasks.named('processResources', ProcessResources) {
@@ -101,7 +60,7 @@ tasks.named('processResources', ProcessResources) {
             forge_version: forge_version, forge_version_range: forge_version_range,
             loader_version_range: loader_version_range,
             mod_id: mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: mod_version,
-            mod_authors: mod_authors, mod_description: mod_description,
+            mod_authors: mod_authors,
     ]
     inputs.properties replaceProperties
 
@@ -130,36 +89,4 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
 
-tasks.register('buildAnnotationProcessor', {
-    doFirst {
-        def annotationProcessorJar = file('../annotation-processor/build/libs/annotation-processor.jar')
-        if (!annotationProcessorJar.exists()) {
-            println 'Annotation processor JAR not found. Building annotation processor...'
-            def buildResult = exec {
-                def gradlew = Os.isFamily(Os.FAMILY_WINDOWS) ? 'gradlew.bat' : 'gradlew'
-                commandLine "../annotation-processor/$gradlew", '-p', '../annotation-processor', 'build'
-            }
-            if (buildResult.exitValue != 0) {
-                throw new GradleException('Failed to build the annotation processor project.')
-            }
-        }
-    }
-})
-
-tasks.withType(JavaCompile).configureEach {
-    dependsOn('buildAnnotationProcessor')
-}
-
-// IntelliJ no longer downloads javadocs and sources by default.
-// This tells Gradle to force IDEA to do it.
 idea.module { downloadJavadoc = downloadSources = true }
-
-// Merge the resources and classes into the same directory.
-// This is done because java expects modules to be in a single directory.
-// And if we have it in multiple we have to do performance intensive hacks like having the UnionFileSystem
-// This will eventually be migrated to ForgeGradle so modders don't need to manually do it. But that is later.
-sourceSets.main {
-    def dir = layout.buildDirectory.dir("sourcesSets/$it.name")
-    it.output.resourcesDir = dir
-    it.java.destinationDirectory = dir
-}
