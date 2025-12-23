@@ -363,12 +363,6 @@ public class FreeCam {
         disable();
     }
 
-    public void onFovOverride(boolean isLevelRender, CallbackInfoReturnable<Float> info) {
-        if (active && isLevelRender) {
-            info.setReturnValue((float) mc.options.fov().get());
-        }
-    }
-
     public void onRenderWorldLast(Matrix4f pose, Matrix4f projectionMatrix, Camera camera) {
         if (!active || moveAlongPath) {
             return;

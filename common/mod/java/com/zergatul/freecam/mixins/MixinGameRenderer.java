@@ -1,16 +1,17 @@
 package com.zergatul.freecam.mixins;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.zergatul.freecam.FreeCam;
-import net.minecraft.client.Camera;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.world.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(GameRenderer.class)
 public abstract class MixinGameRenderer {
@@ -37,8 +38,25 @@ public abstract class MixinGameRenderer {
         return FreeCam.instance.onRenderItemInHandIsFirstPerson(cameraType);
     }
 
-    @Inject(at = @At("HEAD"), method = "getFov", cancellable = true)
-    private void onGetFov(Camera camera, float partialTicks, boolean isLevelRender, CallbackInfoReturnable<Float> info) {
-        FreeCam.instance.onFovOverride(isLevelRender, info);
+    @WrapOperation(
+            method = "getFov",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/util/Mth;lerp(FFF)F"))
+    private float onGetFovChangeModifier(float value, float min, float max, Operation<Float> original) {
+        if (FreeCam.instance.isActive()) {
+            return 1;
+        } else {
+            return original.call(value, min, max);
+        }
+    }
+
+    @WrapOperation(
+            method = "getFov",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/LivingEntity;isDeadOrDying()Z"))
+    private boolean onGetFovChangeEntityDyingState(LivingEntity instance, Operation<Boolean> original) {
+        if (FreeCam.instance.isActive()) {
+            return false;
+        } else {
+            return original.call(instance);
+        }
     }
 }
