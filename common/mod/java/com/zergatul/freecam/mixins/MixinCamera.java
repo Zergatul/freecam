@@ -3,8 +3,6 @@ package com.zergatul.freecam.mixins;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.zergatul.freecam.FreeCam;
 import net.minecraft.client.Camera;
-import net.minecraft.client.Minecraft;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -16,14 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class MixinCamera {
 
     @Shadow
-    @Final
-    private Minecraft minecraft;
-
-    @Shadow
     private boolean detached;
-
-    @Shadow
-    private boolean isPanoramicMode;
 
     @Shadow(aliases = "Lnet/minecraft/client/Camera;setRotation(FF)V")
     protected abstract void setRotation(final float yRot, final float xRot);
@@ -32,8 +23,8 @@ public abstract class MixinCamera {
     protected abstract void setPosition(final double x, final double y, final double z);
 
     @Inject(
-            at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;isPassenger()Z", ordinal = 0),
             method = "alignWithEntity",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;isPassenger()Z", ordinal = 0),
             cancellable = true)
     private void onAlignWithEntity(float partialTicks, CallbackInfo info) {
         FreeCam freeCam = FreeCam.instance;
@@ -45,12 +36,23 @@ public abstract class MixinCamera {
         }
     }
 
+    @ModifyExpressionValue(
+            method = "extractRenderState",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/player/LocalPlayer;isSpectator()Z"))
+    private boolean onExtractRenderStateModifyIsSpectator(boolean isSpectator) {
+        if (FreeCam.instance.isActive()) {
+            return true;
+        } else {
+            return isSpectator;
+        }
+    }
+
     @ModifyExpressionValue(method = "calculateFov", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/Mth;lerp(FFF)F"))
     private float onModifyFovModifier(float original) {
         return FreeCam.instance.isActive() ? 1.0f : original;
     }
 
-    @Inject(at = @At("HEAD"), method = "modifyFovBasedOnDeathOrFluid", cancellable = true)
+    @Inject(method = "modifyFovBasedOnDeathOrFluid", at = @At("HEAD"), cancellable = true)
     private void onModifyFovBasedOnDeathOrFluid(float partialTicks, float fov, CallbackInfoReturnable<Float> info) {
         if (FreeCam.instance.isActive()) {
             info.setReturnValue(fov);

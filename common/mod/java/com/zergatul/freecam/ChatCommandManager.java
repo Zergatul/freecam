@@ -41,7 +41,7 @@ public class ChatCommandManager {
             openSettingsScreenTicks--;
             if (openSettingsScreenTicks == 0) {
                 openSettingsScreenTicks = -1;
-                Minecraft.getInstance().setScreen(new FreeCamSettingsScreen());
+                Minecraft.getInstance().gui.setScreen(new FreeCamSettingsScreen());
             }
         }
     }
@@ -258,7 +258,7 @@ public class ChatCommandManager {
     }
 
     private void printSystemMessage(Component component) {
-        Minecraft.getInstance().getChatListener().handleSystemMessage(component, false);
+        Minecraft.getInstance().gui.chatListener().handleSystemMessage(component, false);
     }
 
     private record ParserEntry(Pattern pattern, BiConsumer<FreeCamConfig, Matcher> consumer) {}

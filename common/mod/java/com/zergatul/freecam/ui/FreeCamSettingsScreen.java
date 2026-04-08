@@ -170,7 +170,7 @@ public class FreeCamSettingsScreen extends Screen {
         }
 
         if (previous != null) {
-            Minecraft.getInstance().setScreen(previous);
+            Minecraft.getInstance().gui.setScreen(previous);
         } else {
             super.onClose();
         }

@@ -4,24 +4,41 @@ plugins {
 
 import java.security.MessageDigest
 
-def loaders = [
+def allLoaders = [
     fabric  : file('../fabric'),
     forge   : file('../forge'),
     neoforge: file('../neoforge')
 ]
 
+// can be overridden from command line: -Ploaders=fabric,neoforge
+def enabledLoaders = (findProperty('loaders') ?: 'fabric,forge,neoforge')
+    .split(',')
+    .collect { it.trim() }
+    .findAll { !it.isEmpty() }
+
+def loaders = allLoaders.findAll { loader, _ -> enabledLoaders.contains(loader) }
+
 def commonProperties = new Properties()
 file('../common/gradle.properties').withInputStream { commonProperties.load(it) }
 
-def fabricProperties = new Properties()
-file('../fabric/gradle.properties').withInputStream { fabricProperties.load(it) }
+def loaderProperties = allLoaders.collectEntries { loader, dir ->
+    def properties = new Properties()
+    file("${dir}/gradle.properties").withInputStream { properties.load(it) }
+    [(loader): properties]
+}
 
 def modVersion = commonProperties['mod_version']
-def minecraftVersion = fabricProperties['minecraft_version']
+def minecraftVersions = loaders.collectEntries { loader, _ -> [(loader): loaderProperties[loader]['minecraft_version']] }
+def uniqueMinecraftVersions = minecraftVersions.values().toSet()
+if (uniqueMinecraftVersions.size() != 1) {
+    throw new GradleException("Selected loaders target different Minecraft versions: ${minecraftVersions}.")
+}
+def minecraftVersion = uniqueMinecraftVersions.first()
 def gradlew = System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows') ? 'gradlew.bat' : './gradlew'
 
 def loaderJar = { String loader ->
-    file("${loaders[loader]}/build/libs/zergatul.freecam-${modVersion}-${loader}-${minecraftVersion}.jar")
+    def loaderMinecraftVersion = loaderProperties[loader]['minecraft_version']
+    file("${loaders[loader]}/build/libs/zergatul.freecam-${modVersion}-${loader}-${loaderMinecraftVersion}.jar")
 }
 
 def sha256 = { byte[] bytes ->
@@ -56,7 +73,7 @@ tasks.register('verifyUniversalJarInputs') {
             }
         }
 
-        def conflicts = entries.findAll { path, hashes ->
+        def conflicts = entries.findAll { _, hashes ->
             hashes.size() > 1 && hashes.values().toSet().size() > 1
         }
 
@@ -91,7 +108,8 @@ tasks.register('universalJar', Jar) {
     }
 
     doFirst {
-        manifest.from(zipTree(loaderJar('forge')).matching {
+        def manifestLoader = ['forge', 'neoforge', 'fabric'].find { loaders.containsKey(it) }
+        manifest.from(zipTree(loaderJar(manifestLoader)).matching {
             include 'META-INF/MANIFEST.MF'
         }.singleFile)
     }

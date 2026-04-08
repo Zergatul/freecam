@@ -213,7 +213,7 @@ public class FreeCam {
         if (mc.player == null) {
             return;
         }
-        if (mc.screen != null) {
+        if (mc.gui.screen() != null) {
             return;
         }
         while (KeyBindings.toggleFreeCam.consumeClick()) {
@@ -527,7 +527,6 @@ public class FreeCam {
         if (oldCameraType.isFirstPerson() != mc.options.getCameraType().isFirstPerson()) {
             mc.gameRenderer.checkEntityPostEffect(mc.options.getCameraType().isFirstPerson() ? mc.getCameraEntity() : null);
         }
-        mc.levelRenderer.needsUpdate(); // copied from handleKeybinds()
     }
 
     private void disableKey(KeyMapping key) {
