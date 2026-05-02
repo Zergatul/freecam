@@ -1,5 +1,6 @@
 package com.zergatul.freecam.mixins;
 
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.zergatul.freecam.FreeCam;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
@@ -44,15 +45,9 @@ public abstract class MixinCamera {
         }
     }
 
-    @Inject(at = @At("HEAD"), method = "calculateFov", cancellable = true)
-    private void onBeforeCalculateFov(float partialTicks, CallbackInfoReturnable<Float> info) {
-        if (this.isPanoramicMode) {
-            return;
-        }
-
-        if (FreeCam.instance.isActive()) {
-            info.setReturnValue((float) this.minecraft.options.fov().get());
-        }
+    @ModifyExpressionValue(method = "calculateFov", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/Mth;lerp(FFF)F"))
+    private float onModifyFovModifier(float original) {
+        return FreeCam.instance.isActive() ? 1.0f : original;
     }
 
     @Inject(at = @At("HEAD"), method = "modifyFovBasedOnDeathOrFluid", cancellable = true)
