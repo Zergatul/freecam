@@ -19,10 +19,10 @@
 
   "environment": "client",
   "entrypoints": {
-    "client": ["com.zergatul.freecam.ModMain"],
-    "modmenu": ["com.zergatul.freecam.ModMenuApiImpl"]
+    "client": ["com.zergatul.freecam.fabric.ModMain"],
+    "modmenu": ["com.zergatul.freecam.fabric.ModMenuApiImpl"]
   },
-  "mixins": ["zergatul.freecam.mixins.json"],
+  "mixins": ["freecam.mixins.json"],
 
   "depends": {
     "fabricloader": ">=0.18.3",

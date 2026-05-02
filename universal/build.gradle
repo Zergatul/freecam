@@ -1,0 +1,146 @@
+plugins {
+    id 'base'
+}
+
+import java.security.MessageDigest
+
+def loaderProjects = [
+    fabric  : file('../fabric'),
+    forge   : file('../forge'),
+    neoforge: file('../neoforge')
+]
+
+def commonProperties = new Properties()
+file('../common/gradle.properties').withInputStream { commonProperties.load(it) }
+
+def fabricProperties = new Properties()
+file('../fabric/gradle.properties').withInputStream { fabricProperties.load(it) }
+
+def modVersion = commonProperties['mod_version']
+def minecraftVersion = fabricProperties['minecraft_version']
+def gradlew = System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows') ? 'gradlew.bat' : './gradlew'
+def universalJarContentsDir = layout.buildDirectory.dir('universalJar/contents')
+def universalManifestFile = layout.buildDirectory.file('universalJar/MANIFEST.MF')
+
+def loaderJar = { String loader ->
+    def jars = fileTree("${loaderProjects[loader]}/build/libs") {
+        include '*.jar'
+    }.files
+
+    if (jars.size() != 1) {
+        throw new GradleException("Expected exactly one jar in ${loaderProjects[loader]}/build/libs, found ${jars.size()}: ${jars*.name}")
+    }
+
+    jars.first()
+}
+
+def sha256 = { byte[] bytes ->
+    MessageDigest.getInstance('SHA-256').digest(bytes).encodeHex().toString()
+}
+
+tasks.register('cleanJars', Delete) {
+    delete loaderProjects.values().collect { fileTree("${it}/build/libs") { include '*.jar' } }
+}
+
+tasks.register('buildFabric', Exec) {
+    dependsOn cleanJars
+    workingDir '../fabric'
+    commandLine gradlew, 'jar'
+}
+
+tasks.register('buildForge', Exec) {
+    dependsOn cleanJars
+    workingDir '../forge'
+    commandLine gradlew, 'jar'
+}
+
+tasks.register('buildNeoForge', Exec) {
+    dependsOn cleanJars
+    workingDir '../neoforge'
+    commandLine gradlew, 'jar'
+}
+
+tasks.register('verifyUniversalJarInputs') {
+    dependsOn buildFabric, buildForge, buildNeoForge
+
+    doLast {
+        def entries = [:].withDefault { [:] }
+
+        loaderProjects.keySet().each { loader ->
+            zipTree(loaderJar(loader)).matching {
+                exclude 'META-INF/MANIFEST.MF'
+            }.visit { details ->
+                if (!details.directory) {
+                    entries[details.path][loader] = sha256(details.file.bytes)
+                }
+            }
+        }
+
+        def conflicts = entries.findAll { path, hashes ->
+            hashes.size() > 1 && hashes.values().toSet().size() > 1
+        }
+
+        if (!conflicts.isEmpty()) {
+            def message = new StringBuilder('Universal jar inputs contain conflicting duplicate entries:')
+            conflicts.each { path, hashes ->
+                message.append(System.lineSeparator()).append("  ").append(path)
+                hashes.each { loader, hash ->
+                    message.append(System.lineSeparator()).append("    ").append(loader).append(": ").append(hash)
+                }
+            }
+            throw new GradleException(message.toString())
+        }
+    }
+}
+
+tasks.register('prepareUniversalJarContents') {
+    dependsOn verifyUniversalJarInputs
+
+    outputs.dir universalJarContentsDir
+    outputs.file universalManifestFile
+
+    doLast {
+        delete universalJarContentsDir
+        delete universalManifestFile
+
+        copy {
+            into universalJarContentsDir
+            duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+            from(zipTree(loaderJar('fabric'))) {
+                exclude 'META-INF/MANIFEST.MF'
+            }
+            from(zipTree(loaderJar('forge'))) {
+                exclude 'META-INF/MANIFEST.MF'
+            }
+            from(zipTree(loaderJar('neoforge'))) {
+                exclude 'META-INF/MANIFEST.MF'
+            }
+        }
+
+        copy {
+            // Forge has reference to its own Mixin Config file, and that is why we include Forge MF.
+            from zipTree(loaderJar('forge')).matching {
+                include 'META-INF/MANIFEST.MF'
+            }.singleFile
+            into universalManifestFile.get().asFile.parentFile
+            rename { 'MANIFEST.MF' }
+        }
+    }
+}
+
+tasks.register('universalJar', Jar) {
+    dependsOn prepareUniversalJarContents
+
+    archiveFileName = "zergatul.freecam-${modVersion}-mc-${minecraftVersion}.jar"
+    destinationDirectory = layout.buildDirectory.dir('libs')
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    reproducibleFileOrder = true
+    preserveFileTimestamps = false
+
+    from universalJarContentsDir
+
+    manifest {
+        from universalManifestFile
+    }
+}

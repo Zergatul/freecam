@@ -430,7 +430,7 @@ public class FreeCam {
 
                 List<String> lines = new ArrayList<>();
                 lines.add(ChatFormatting.UNDERLINE + "Free Cam Targeted Block: " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ());
-                lines.add(String.valueOf(ModApiWrapper.instance.BLOCKS.getKey(state.getBlock())));
+                lines.add(String.valueOf(ModLoaderBridgeInstance.get().getBlockRegistry().getKey(state.getBlock())));
 
                 state.getValues().forEach(value -> lines.add(getPropertyValueString(value)));
                 state.tags().map(tag -> "#" + tag.location()).forEach(lines::add);

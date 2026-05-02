@@ -7,9 +7,12 @@ plugins {
 
 def commonProperties = new Properties()
 file('../common/gradle.properties').withInputStream { commonProperties.load(it) }
-def mod_version = commonProperties['mod_version']
+def modVersion = commonProperties['mod_version']
+def mixinsConfigOriginal = 'freecam.mixins.json'
+def mixinsConfigForge = 'freecam.forge.mixins.json'
+def generatedMixinsConfigDir = layout.buildDirectory.dir('generated/resources/forgeMixins')
 
-version = mod_version
+version = modVersion
 group = mod_group_id
 
 java {
@@ -22,7 +25,7 @@ minecraft {
     runs {
         client {
             workingDir = layout.projectDirectory.dir('run')
-            args "-mixin.config=zergatul.freecam.mixin.json"
+            args "-mixin.config=${mixinsConfigForge}"
 
             systemProperty 'forge.logging.console.level', 'debug'
             systemProperty 'eventbus.api.strictRuntimeChecks', 'true'
@@ -36,6 +39,15 @@ repositories {
     maven fg.minecraftLibsMaven
 }
 
+tasks.register('generateForgeMixinsConfig', Copy) {
+    from('../common/mod/resources') {
+        include mixinsConfigOriginal
+        filter { String line -> line.replace("JAVA_25", "JAVA_21") }
+        rename { mixinsConfigForge }
+    }
+    into generatedMixinsConfigDir
+}
+
 sourceSets {
     main {
         java {
@@ -44,6 +56,8 @@ sourceSets {
         }
         resources {
             srcDir '../common/mod/resources'
+            exclude mixinsConfigOriginal
+            srcDir generatedMixinsConfigDir
             srcDir 'src/generated/resources'
         }
     }
@@ -51,15 +65,16 @@ sourceSets {
 
 dependencies {
     implementation minecraft.dependency("net.minecraftforge:forge:${minecraft_version}-${forge_version}")
-    //annotationProcessor 'org.spongepowered:mixin:0.8.7:processor'
 }
 
 tasks.named('processResources', ProcessResources) {
+    dependsOn tasks.named('generateForgeMixinsConfig')
+
     var replaceProperties = [
             minecraft_version: minecraft_version, minecraft_version_range: minecraft_version_range,
             forge_version: forge_version, forge_version_range: forge_version_range,
             loader_version_range: loader_version_range,
-            mod_id: mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: mod_version,
+            mod_id: mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: modVersion,
             mod_authors: mod_authors,
     ]
     inputs.properties replaceProperties
@@ -70,17 +85,11 @@ tasks.named('processResources', ProcessResources) {
 }
 
 tasks.named('jar', Jar) {
-    archiveFileName = "zergatul.freecam-$mod_version-forge-${minecraft_version}.jar"
+    archiveFileName = "zergatul.freecam-$modVersion-forge-${minecraft_version}.jar"
 
     manifest {
         attributes([
-            'Specification-Title'     : mod_id,
-            'Specification-Vendor'    : mod_authors,
-            'Specification-Version'   : '1', // We are version 1 of ourselves
-            'Implementation-Title'    : project.name,
-            'Implementation-Version'  : project.jar.archiveVersion,
-            'Implementation-Vendor'   : mod_authors,
-            'MixinConfigs'            : 'zergatul.freecam.mixin.json'
+            'MixinConfigs': mixinsConfigForge
         ])
     }
 }

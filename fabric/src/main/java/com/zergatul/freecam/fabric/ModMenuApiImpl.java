@@ -1,4 +1,4 @@
-package com.zergatul.freecam;
+package com.zergatul.freecam.fabric;
 
 import com.terraformersmc.modmenu.api.ConfigScreenFactory;
 import com.terraformersmc.modmenu.api.ModMenuApi;
