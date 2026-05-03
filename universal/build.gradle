@@ -4,7 +4,7 @@ plugins {
 
 import java.security.MessageDigest
 
-def loaderProjects = [
+def loaders = [
     fabric  : file('../fabric'),
     forge   : file('../forge'),
     neoforge: file('../neoforge')
@@ -19,19 +19,9 @@ file('../fabric/gradle.properties').withInputStream { fabricProperties.load(it) 
 def modVersion = commonProperties['mod_version']
 def minecraftVersion = fabricProperties['minecraft_version']
 def gradlew = System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows') ? 'gradlew.bat' : './gradlew'
-def universalJarContentsDir = layout.buildDirectory.dir('universalJar/contents')
-def universalManifestFile = layout.buildDirectory.file('universalJar/MANIFEST.MF')
 
 def loaderJar = { String loader ->
-    def jars = fileTree("${loaderProjects[loader]}/build/libs") {
-        include '*.jar'
-    }.files
-
-    if (jars.size() != 1) {
-        throw new GradleException("Expected exactly one jar in ${loaderProjects[loader]}/build/libs, found ${jars.size()}: ${jars*.name}")
-    }
-
-    jars.first()
+    file("${loaders[loader]}/build/libs/zergatul.freecam-${modVersion}-${loader}-${minecraftVersion}.jar")
 }
 
 def sha256 = { byte[] bytes ->
@@ -39,34 +29,24 @@ def sha256 = { byte[] bytes ->
 }
 
 tasks.register('cleanJars', Delete) {
-    delete loaderProjects.values().collect { fileTree("${it}/build/libs") { include '*.jar' } }
+    delete loaders.values().collect { fileTree("${it}/build/libs") { include '*.jar' } }
 }
 
-tasks.register('buildFabric', Exec) {
-    dependsOn cleanJars
-    workingDir '../fabric'
-    commandLine gradlew, 'jar'
-}
-
-tasks.register('buildForge', Exec) {
-    dependsOn cleanJars
-    workingDir '../forge'
-    commandLine gradlew, 'jar'
-}
-
-tasks.register('buildNeoForge', Exec) {
-    dependsOn cleanJars
-    workingDir '../neoforge'
-    commandLine gradlew, 'jar'
+def buildTasks = loaders.collectEntries { loader, dir ->
+    [(loader): tasks.register("build${loader.capitalize()}", Exec) {
+        dependsOn cleanJars
+        workingDir dir
+        commandLine gradlew, 'jar'
+    }]
 }
 
 tasks.register('verifyUniversalJarInputs') {
-    dependsOn buildFabric, buildForge, buildNeoForge
+    dependsOn buildTasks.values()
 
     doLast {
         def entries = [:].withDefault { [:] }
 
-        loaderProjects.keySet().each { loader ->
+        loaders.keySet().each { loader ->
             zipTree(loaderJar(loader)).matching {
                 exclude 'META-INF/MANIFEST.MF'
             }.visit { details ->
@@ -93,44 +73,8 @@ tasks.register('verifyUniversalJarInputs') {
     }
 }
 
-tasks.register('prepareUniversalJarContents') {
-    dependsOn verifyUniversalJarInputs
-
-    outputs.dir universalJarContentsDir
-    outputs.file universalManifestFile
-
-    doLast {
-        delete universalJarContentsDir
-        delete universalManifestFile
-
-        copy {
-            into universalJarContentsDir
-            duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-
-            from(zipTree(loaderJar('fabric'))) {
-                exclude 'META-INF/MANIFEST.MF'
-            }
-            from(zipTree(loaderJar('forge'))) {
-                exclude 'META-INF/MANIFEST.MF'
-            }
-            from(zipTree(loaderJar('neoforge'))) {
-                exclude 'META-INF/MANIFEST.MF'
-            }
-        }
-
-        copy {
-            // Forge has reference to its own Mixin Config file, and that is why we include Forge MF.
-            from zipTree(loaderJar('forge')).matching {
-                include 'META-INF/MANIFEST.MF'
-            }.singleFile
-            into universalManifestFile.get().asFile.parentFile
-            rename { 'MANIFEST.MF' }
-        }
-    }
-}
-
 tasks.register('universalJar', Jar) {
-    dependsOn prepareUniversalJarContents
+    dependsOn verifyUniversalJarInputs
 
     archiveFileName = "zergatul.freecam-${modVersion}-mc-${minecraftVersion}.jar"
     destinationDirectory = layout.buildDirectory.dir('libs')
@@ -138,9 +82,17 @@ tasks.register('universalJar', Jar) {
     reproducibleFileOrder = true
     preserveFileTimestamps = false
 
-    from universalJarContentsDir
+    from({
+        loaders.keySet().collect { loader ->
+            zipTree(loaderJar(loader))
+        }
+    }) {
+        exclude 'META-INF/MANIFEST.MF'
+    }
 
-    manifest {
-        from universalManifestFile
+    doFirst {
+        manifest.from(zipTree(loaderJar('forge')).matching {
+            include 'META-INF/MANIFEST.MF'
+        }.singleFile)
     }
 }
