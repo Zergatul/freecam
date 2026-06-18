@@ -13,13 +13,13 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@main
         with:
-          distribution: adopt
+          distribution: temurin
           java-version: 25
 
       - name: Build
         run: |
           cd universal
-          ./gradlew universalJar -Ploaders=fabric,neoforge
+          ./gradlew universalJar
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@main
