@@ -6,11 +6,18 @@
   "verbose": true,
   "client": [
     "MixinAbstractClientPlayer",
+    "MixinEntity",
+    "MixinEntityLivingBase",
     "MixinEntityPlayerSP",
     "MixinEntityRenderer",
+    "MixinGuiIngame",
+    "MixinGuiScreen",
     "MixinGuiOverlayDebug",
+    "MixinItemRenderer",
+    "MixinRendererLivingEntity",
     "MixinRenderGlobal",
     "MixinRenderManager",
+    "MixinRenderPlayer",
     "MixinViewFrustum"
   ]
 }

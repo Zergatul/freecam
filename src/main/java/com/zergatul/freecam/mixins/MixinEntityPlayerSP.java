@@ -1,6 +1,6 @@
 package com.zergatul.freecam.mixins;
 
-import com.zergatul.freecam.FreeCamController;
+import com.zergatul.freecam.FreeCam;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.Entity;
 import net.minecraft.world.World;
@@ -15,9 +15,7 @@ public abstract class MixinEntityPlayerSP extends Entity {
 
     @Override
     public void setAngles(float yaw, float pitch) {
-        if (FreeCamController.instance.isActive()) {
-            FreeCamController.instance.onMouseTurn(yaw, -pitch);
-        } else {
+        if (FreeCam.INSTANCE.onMouseTurn(yaw, -pitch)) {
             super.setAngles(yaw, pitch);
         }
     }

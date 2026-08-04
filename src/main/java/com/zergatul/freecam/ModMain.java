@@ -4,14 +4,15 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 
-@Mod(modid = ModMain.MOD_ID, name = "FreeCam by Zergatul", version = "0.1.1")
+@Mod(modid = ModMain.MOD_ID, guiFactory = "com.zergatul.freecam.ui.FreeCamGuiFactory")
 public class ModMain {
 
     public static final String MOD_ID = "freecam";
 
     @Mod.EventHandler
     public void init(FMLPreInitializationEvent event) {
-        KeyBindingsController.instance.setup();
+        ConfigRepository.INSTANCE.init(event.getModConfigurationDirectory());
+        KeyBindingsController.INSTANCE.setup();
         MinecraftForge.EVENT_BUS.register(ModApiWrapper.instance);
     }
 }

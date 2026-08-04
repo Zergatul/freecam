@@ -1,6 +1,6 @@
 package com.zergatul.freecam.mixins;
 
-import com.zergatul.freecam.FreeCamController;
+import com.zergatul.freecam.FreeCam;
 import net.minecraft.client.renderer.ViewFrustum;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -15,7 +15,7 @@ public abstract class MixinViewFrustum {
             ordinal = 0,
             argsOnly = false) // argsOnly fails for some reason
     private double onUpdateChunkPositionsViewEntityX(double viewEntityX) {
-        return FreeCamController.instance.getViewFrustumEntityPosX(viewEntityX);
+        return FreeCam.INSTANCE.getViewFrustumEntityPosX(viewEntityX);
     }
 
     @ModifyVariable(
@@ -24,6 +24,6 @@ public abstract class MixinViewFrustum {
             ordinal = 1,
             argsOnly = false) // argsOnly fails for some reason
     private double onUpdateChunkPositionsViewEntityZ(double viewEntityZ) {
-        return FreeCamController.instance.getViewFrustumEntityPosZ(viewEntityZ);
+        return FreeCam.INSTANCE.getViewFrustumEntityPosZ(viewEntityZ);
     }
 }

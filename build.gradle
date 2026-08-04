@@ -1,15 +1,14 @@
 buildscript {
     repositories {
-        maven { url 'https://jitpack.io' }
-        maven { url 'https://repo.spongepowered.org/maven' }
+        maven { url 'https://repo.spongepowered.org/repository/maven-public/' }
         maven { url 'https://maven.minecraftforge.net/' }
         mavenCentral()
     }
 
     dependencies {
-        classpath 'com.github.sdxqw:ForgeGradle:f2c5bb338e'
-        classpath 'com.github.sdxqw:MixinGradle:0.6-SNAPSHOT'
-        classpath 'com.github.jengelman.gradle.plugins:shadow:4.0.4'
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.1-SNAPSHOT'
+        classpath 'org.spongepowered:mixingradle:0.6-SNAPSHOT'
+        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.4'
     }
 }
 
@@ -25,8 +24,10 @@ compileJava {
     sourceCompatibility = targetCompatibility = 8
 }
 
-version "0.1.1"
-group "io.github.sdxqw"
+version "2.3.0"
+group "com.zergatul.freecam"
+
+def releaseJarName = "zergatul.freecam-${version}-forge-1.8.9.jar"
 
 minecraft {
     version = "1.8.9-11.15.1.2318-1.8.9"
@@ -40,55 +41,179 @@ minecraft {
     ]
     clientJvmArgs.addAll(args)
     serverJvmArgs.addAll(args)
-    makeObfSourceJar = true
+    makeObfSourceJar = false
+}
+
+// ForgeGradle 2.1 hardcodes an HTTP asset URL which Mojang now rejects.
+// Keep the original task wiring, but download and verify the same assets over HTTPS.
+def assetSha1 = { File file ->
+    def digest = java.security.MessageDigest.getInstance('SHA-1')
+    file.withInputStream { input ->
+        byte[] buffer = new byte[8192]
+        int count
+        while ((count = input.read(buffer)) != -1) {
+            digest.update(buffer, 0, count)
+        }
+    }
+    digest.digest().collect { String.format('%02x', it & 0xff) }.join()
+}
+
+def isValidAsset = { File file, long size, String hash ->
+    file.isFile() && file.length() == size && assetSha1(file).equalsIgnoreCase(hash)
+}
+
+getAssets.actions.clear()
+getAssets.doLast {
+    File assetsDir = getAssets.assetsDir
+    File indexFile = getAssets.assetsIndex
+    def index = new groovy.json.JsonSlurper().parse(indexFile)
+    File objectsDir = new File(assetsDir, 'objects')
+    File virtualDir = index.virtual ? new File(assetsDir, "virtual/${indexFile.name - '.json'}") : null
+    objectsDir.mkdirs()
+    virtualDir?.mkdirs()
+
+    def executor = java.util.concurrent.Executors.newFixedThreadPool(
+            Math.min(8, Math.max(2, Runtime.runtime.availableProcessors())))
+    def futures = []
+    def downloaded = new java.util.concurrent.atomic.AtomicInteger()
+
+    index.objects.each { name, entry ->
+        futures << executor.submit({
+            String hash = entry.hash
+            long size = entry.size as long
+            String relativePath = "${hash.substring(0, 2)}/${hash}"
+            File objectFile = new File(objectsDir, relativePath)
+
+            if (!isValidAsset(objectFile, size, hash)) {
+                objectFile.parentFile.mkdirs()
+                objectFile.delete()
+                File temporaryFile = new File(objectFile.parentFile, "${objectFile.name}.part")
+                temporaryFile.delete()
+
+                Exception lastFailure = null
+                for (int attempt = 1; attempt <= 3; attempt++) {
+                    try {
+                        new URL("https://resources.download.minecraft.net/${relativePath}").withInputStream { input ->
+                            temporaryFile.withOutputStream { output ->
+                                byte[] buffer = new byte[8192]
+                                int count
+                                while ((count = input.read(buffer)) != -1) {
+                                    output.write(buffer, 0, count)
+                                }
+                            }
+                        }
+                        if (!isValidAsset(temporaryFile, size, hash)) {
+                            throw new IOException("Downloaded asset failed SHA-1 validation: ${name}")
+                        }
+                        java.nio.file.Files.move(
+                                temporaryFile.toPath(),
+                                objectFile.toPath(),
+                                java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                        downloaded.incrementAndGet()
+                        lastFailure = null
+                        break
+                    } catch (Exception exception) {
+                        temporaryFile.delete()
+                        lastFailure = exception
+                    }
+                }
+                if (lastFailure != null) {
+                    throw new IOException("Cannot download Minecraft asset: ${name}", lastFailure)
+                }
+            }
+
+            if (virtualDir != null) {
+                File virtualFile = new File(virtualDir, name)
+                if (!isValidAsset(virtualFile, size, hash)) {
+                    virtualFile.parentFile.mkdirs()
+                    java.nio.file.Files.copy(
+                            objectFile.toPath(),
+                            virtualFile.toPath(),
+                            java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                }
+            }
+            null
+        } as java.util.concurrent.Callable)
+    }
+
+    executor.shutdown()
+    try {
+        futures.each { it.get() }
+    } finally {
+        executor.shutdownNow()
+    }
+    logger.lifecycle("Minecraft assets ready (downloaded ${downloaded.get()}).")
+}
+
+// JavaExec tasks in this old ForgeGradle version acquire outputs accidentally on Gradle 4.6.
+// A game launch is always an action and must never be skipped as UP-TO-DATE.
+// Gradle 4.6 separates compiled classes and resources, but Forge 1.8.9 expects a
+// mod's development output to be one resource-pack root. Merge both outputs for
+// game runs so Forge can discover @Mod classes and assets (including .lang files).
+task prepareRunMod(type: Sync, dependsOn: classes) {
+    from sourceSets.main.output
+    into "$buildDir/runMod"
+}
+
+// ForgeGradle 2.1 launches against the packaged project jar. Since that jar is also
+// loaded as a command-line coremod, Forge treats it as a known library and skips
+// its normal @Mod discovery pass. Launch against the merged development output.
+[runClient, runServer].each { runTask ->
+    File packagedMod = jar.archivePath.canonicalFile
+    runTask.classpath = files(
+            prepareRunMod.destinationDir,
+            runTask.classpath.filter { it.canonicalFile != packagedMod })
+    runTask.dependsOn prepareRunMod
+    runTask.outputs.upToDateWhen { false }
 }
 
 configurations {
-    sdxqw
-    implementation.extendsFrom(sdxqw)
-
-    runtimeOnly{
-        canBeResolved = true
-    }
+    shade
+    compile.extendsFrom(shade)
 }
 
 repositories {
-    maven { url 'https://jitpack.io' }
     maven { url 'https://repo.spongepowered.org/repository/maven-public/' }
     maven { url 'https://maven.minecraftforge.net/' }
     mavenCentral()
 }
 
 dependencies {
-    annotationProcessor('org.spongepowered:mixin:0.7.11-SNAPSHOT')
-    sdxqw('com.github.TheNullicorn:Nedit:2.1.0')
-
-    sdxqw('org.spongepowered:mixin:0.7.11-SNAPSHOT') {
+    shade('org.spongepowered:mixin:0.7.11-SNAPSHOT') {
+        exclude module: 'launchwrapper'
         exclude module: 'gson'
         exclude module: 'commons-io'
         exclude module: 'guava'
+        exclude module: 'log4j-core'
     }
 }
 
 reobf {
-    shadowJar {
-        classpath = sourceSets.main.compileClasspath
-    }
+    shadowJar {}
 }
 
 mixin {
     defaultObfuscationEnv notch
-    add sourceSets.main, "mixins.${modid}.refmap.json"
+}
+
+sourceSets {
+    main {
+        ext.refMap = "mixins.${modid}.refmap.json"
+    }
 }
 
 shadowJar {
+    archiveName = releaseJarName
+    classifier = ""
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    configurations = [project.configurations.sdxqw]
+    configurations = [project.configurations.shade]
     classifier ""
     exclude "LICENSE.txt", "dummyThing"
 }
 
 jar {
+    destinationDir = file("$buildDir/intermediates/thinJar")
+
     manifest.attributes(
             'FMLCorePluginContainsFMLMod': true,
             'ForceLoadAsMod': true,
@@ -97,8 +222,6 @@ jar {
             'FMLCorePlugin': "${tweaker}"
     )
 }
-
-tasks.reobfJar.dependsOn(tasks.shadowJar)
 
 processResources {
     inputs.property "version", project.version
@@ -121,7 +244,5 @@ task sourcesJar(type: Jar, dependsOn: classes) {
 }
 
 artifacts {
-    archives jar
     archives shadowJar
-    archives sourcesJar
 }
