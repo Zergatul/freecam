@@ -79,6 +79,8 @@ mixin {
 }
 
 jar {
+    archiveFileName = "zergatul.freecam-$mod_version-forge-${minecraft_version}.jar"
+
     from {
         configurations.embed.collect { it.isDirectory() ? it : zipTree(it) }
     } {
