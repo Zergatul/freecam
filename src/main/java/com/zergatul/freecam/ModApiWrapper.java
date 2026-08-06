@@ -2,7 +2,6 @@ package com.zergatul.freecam;
 
 import net.minecraftforge.client.event.ClientChatEvent;
 import net.minecraftforge.client.event.RenderHandEvent;
-import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.InputEvent;
@@ -23,7 +22,7 @@ public class ModApiWrapper {
 
     @SubscribeEvent
     public void onClientChatEvent(ClientChatEvent event) {
-        if (ChatCommandManager.instance.handleChatMessage(event.getMessage())) {
+        if (ChatCommandManager.instance.handleChatMessage(event.getMessage(), true)) {
             event.setCanceled(true);
         }
     }
@@ -31,7 +30,7 @@ public class ModApiWrapper {
     @SubscribeEvent
     public void onRenderTick(TickEvent.RenderTickEvent event) {
         if (event.phase == TickEvent.Phase.START) {
-            FreeCam.instance.onRenderTickStart();
+            FreeCam.instance.onRenderTickStart(event.renderTickTime);
         }
     }
 
@@ -45,6 +44,7 @@ public class ModApiWrapper {
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase == TickEvent.Phase.START) {
+            ChatCommandManager.instance.onClientTickStart();
             FreeCam.instance.onClientTickStart();
         }
     }
@@ -54,10 +54,5 @@ public class ModApiWrapper {
         if (event.getWorld().isRemote) {
             FreeCam.instance.onWorldUnload();
         }
-    }
-
-    @SubscribeEvent
-    public void onRenderWorldLast(RenderWorldLastEvent event) {
-        FreeCam.instance.onRenderWorldLast();
     }
 }

@@ -17,6 +17,9 @@ public class FreeCamConfig {
     public double slowdownFactor;
     public boolean renderHands;
     public boolean target;
+    public boolean spectatorMovement;
+    public boolean rememberInputState;
+    public boolean showMyName;
 
     public FreeCamConfig() {
         acceleration = DefaultAcceleration;

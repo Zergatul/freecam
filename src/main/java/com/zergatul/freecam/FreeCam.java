@@ -4,43 +4,45 @@ import com.zergatul.freecam.math.Quaternion;
 import com.zergatul.freecam.math.Vector3f;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.AbstractClientPlayer;
-import net.minecraft.client.renderer.BufferBuilder;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.MovementInput;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
-import org.lwjgl.opengl.GL11;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class FreeCam {
 
     public static final FreeCam instance = new FreeCam();
+
+    private static final int REMEMBER_STATE_DELAY_MS = 400;
 
     private final Minecraft mc = Minecraft.getMinecraft();
     private final Quaternion rotation = new Quaternion(0.0F, 0.0F, 0.0F, 1.0F);
     private final Vector3f forwards = new Vector3f(0.0F, 0.0F, 1.0F);
     private final Vector3f up = new Vector3f(0.0F, 1.0F, 0.0F);
     private final Vector3f left = new Vector3f(1.0F, 0.0F, 0.0F);
-    private final FreeCamPath path = new FreeCamPath(this);
     private final FreeCamConfig config = ConfigRepository.instance.load();
     private boolean active;
     private int oldCameraType;
     private MovementInput playerInput;
     private MovementInput freecamInput;
+    private Entity oldEntity;
     private double x, y, z;
     private float yRot, xRot;
     private double forwardVelocity;
     private double leftVelocity;
     private double upVelocity;
     private long lastTime;
+    private long dontMoveFreeCamBefore;
+    private boolean picking;
+    private boolean cameraRestoredForPicking;
     private boolean cameraLock;
-    private boolean moveAlongPath;
-    private long pathStartTime;
+    private boolean eyeLock;
+    private boolean followCamera;
+    private double followDeltaX, followDeltaY, followDeltaZ;
 
     private FreeCam() {
 
@@ -48,6 +50,10 @@ public class FreeCam {
 
     public boolean isActive() {
         return active;
+    }
+
+    public FreeCamConfig getConfig() {
+        return config;
     }
 
     public double getX() {
@@ -70,14 +76,6 @@ public class FreeCam {
         return yRot;
     }
 
-    public FreeCamConfig getConfig() {
-        return config;
-    }
-
-    public FreeCamPath getPath() {
-        return path;
-    }
-
     public void toggle() {
         if (active) {
             disable();
@@ -86,57 +84,37 @@ public class FreeCam {
         }
     }
 
-    public void toggleCameraLock() {
-        if (active) {
-            cameraLock = !cameraLock;
-            if (cameraLock) {
-                mc.player.movementInput = playerInput;
-            } else {
-                mc.player.movementInput = freecamInput;
-            }
-        }
-    }
-
     public void onKeyInput() {
-        if (mc.player == null) {
+        if (mc.player == null || mc.currentScreen != null) {
             return;
         }
-        if (mc.currentScreen != null) {
-            return;
-        }
+
         while (KeyBindings.toggleFreeCam.isPressed()) {
             toggle();
         }
         while (KeyBindings.toggleCameraLock.isPressed()) {
             toggleCameraLock();
         }
-        while (KeyBindings.startPath.isPressed()) {
-            startPath();
+        while (KeyBindings.toggleEyeLock.isPressed()) {
+            toggleEyeLock();
+        }
+        while (KeyBindings.toggleFollowCam.isPressed()) {
+            toggleFollowCamera();
         }
     }
 
-    public void onMouseTurn(double yRot, double xRot, Runnable callSuper) {
-        if (active) {
-            if (!moveAlongPath) {
-                if (cameraLock) {
-                    if (override != null) {
-                        restoreCameraEntityPosition();
-                    }
-                    callSuper.run();
-                    if (override != null) {
-                        saveCameraEntityPosition();
-                        moveCameraEntityToFreeCamPosition();
-                    }
-                } else {
-                    this.xRot += (float) xRot * 0.15F;
-                    this.yRot += (float) yRot * 0.15F;
-                    this.xRot = MathHelper.clamp(this.xRot, -90, 90);
-                    calculateVectors();
-                }
+    public boolean onMouseTurn(double yRot, double xRot) {
+        if (active && !cameraLock && !followCamera) {
+            if (!eyeLock) {
+                this.xRot += (float) xRot * 0.15F;
+                this.yRot += (float) yRot * 0.15F;
+                this.xRot = MathHelper.clamp(this.xRot, -90, 90);
+                calculateVectors();
             }
-        } else {
-            callSuper.run();
+            return false;
         }
+
+        return true;
     }
 
     public void onClientTickStart() {
@@ -144,58 +122,118 @@ public class FreeCam {
             while (mc.gameSettings.keyBindTogglePerspective.isPressed()) {
                 // consume clicks
             }
-            playerInput.updatePlayerMoveState();
+            if (mc.player != null && mc.player.movementInput != playerInput) {
+                playerInput.updatePlayerMoveState();
+            }
         }
     }
 
-    public void onRenderTickStart() {
-        if (active) {
-            long currTime = System.nanoTime();
-            float frameTime = (currTime - lastTime) / 1e9f;
-            lastTime = currTime;
+    public boolean shouldShowMyName() {
+        return active && config.showMyName;
+    }
 
-            if (moveAlongPath) {
-                FreeCamPath.Entry entry = path.interpolate((currTime - pathStartTime) / 1e6);
-                if (entry == null) {
-                    moveAlongPath = false;
-                } else {
-                    x = entry.position.x;
-                    y = entry.position.y;
-                    z = entry.position.z;
-                    xRot = (float) entry.xRot;
-                    yRot = (float) entry.yRot;
-                }
-            } else {
-                MovementInput input = playerInput;
-                float forwardImpulse = cameraLock ? 0 : input.moveForward;
-                float leftImpulse = cameraLock ? 0 : input.moveStrafe;
-                float upImpulse = cameraLock ? 0 : (input.jump ? 1 : 0) + (input.sneak ? -1 : 0);
-                double slowdown = Math.pow(config.slowdownFactor, frameTime);
-                forwardVelocity = combineMovement(forwardVelocity, forwardImpulse, frameTime, config.acceleration, slowdown);
-                leftVelocity = combineMovement(leftVelocity, leftImpulse, frameTime, config.acceleration, slowdown);
-                upVelocity = combineMovement(upVelocity, upImpulse, frameTime, config.acceleration, slowdown);
+    public boolean shouldRenderTarget() {
+        return !active || !cameraLock && !eyeLock && !followCamera && config.target;
+    }
 
-                double dx = (double) this.forwards.x * forwardVelocity + (double) this.left.x * leftVelocity;
-                double dy = (double) this.forwards.y * forwardVelocity + upVelocity + (double) this.left.y * leftVelocity;
-                double dz = (double) this.forwards.z * forwardVelocity + (double) this.left.z * leftVelocity;
-                dx *= frameTime;
-                dy *= frameTime;
-                dz *= frameTime;
-                double speed = Math.sqrt(dx * dx + dy * dy + dz * dz) / frameTime;
-                if (speed > config.maxSpeed) {
-                    double factor = config.maxSpeed / speed;
-                    forwardVelocity *= factor;
-                    leftVelocity *= factor;
-                    upVelocity *= factor;
-                    dx *= factor;
-                    dy *= factor;
-                    dz *= factor;
-                }
+    public boolean shouldRenderHands() {
+        return !active || !cameraLock && !eyeLock && !followCamera && config.renderHands;
+    }
+
+    public void onBeforePick() {
+        picking = true;
+        cameraRestoredForPicking = false;
+
+        if (override != null) {
+            restoreCameraEntityPosition();
+            cameraRestoredForPicking = true;
+        }
+    }
+
+    public void onAfterPick() {
+        if (cameraRestoredForPicking && override != null) {
+            moveCameraEntityToFreeCamPosition();
+        }
+
+        cameraRestoredForPicking = false;
+        picking = false;
+    }
+
+    public boolean shouldOverrideCameraEntityForPicking(Entity entity) {
+        return active && !cameraLock && !eyeLock && !followCamera && config.target &&
+                picking && entity == mc.getRenderViewEntity();
+    }
+
+    public Vec3d getTargetLookVector() {
+        float yawCos = MathHelper.cos(-yRot * 0.017453292F - (float) Math.PI);
+        float yawSin = MathHelper.sin(-yRot * 0.017453292F - (float) Math.PI);
+        float pitchCos = -MathHelper.cos(-xRot * 0.017453292F);
+        float pitchSin = MathHelper.sin(-xRot * 0.017453292F);
+        return new Vec3d(yawSin * pitchCos, pitchSin, yawCos * pitchCos);
+    }
+
+    public AxisAlignedBB getTargetSearchBox(Entity entity, AxisAlignedBB box) {
+        if (!shouldOverrideCameraEntityForPicking(entity)) {
+            return box;
+        }
+
+        double dx = x - entity.posX;
+        double dy = y - (entity.posY + entity.getEyeHeight());
+        double dz = z - entity.posZ;
+        return box.offset(dx, dy, dz);
+    }
+
+    public void onRenderTickStart(float partialTicks) {
+        if (!active) {
+            return;
+        }
+
+        long currTime = System.nanoTime();
+        float frameTime = (currTime - lastTime) / 1e9f;
+        lastTime = currTime;
+
+        if (followCamera) {
+            Entity entity = mc.getRenderViewEntity();
+            if (entity != null) {
+                Vec3d pos = entity.getPositionEyes(partialTicks);
+                x = pos.x + followDeltaX;
+                y = pos.y + followDeltaY;
+                z = pos.z + followDeltaZ;
+            }
+        } else {
+            MovementInput input = playerInput;
+            float forwardImpulse = cameraLock ? 0 : input.moveForward;
+            float leftImpulse = cameraLock ? 0 : input.moveStrafe;
+            float upImpulse = cameraLock ? 0 : (input.jump ? 1 : 0) + (input.sneak ? -1 : 0);
+            double slowdown = Math.pow(config.slowdownFactor, frameTime);
+            forwardVelocity = combineMovement(forwardVelocity, forwardImpulse, frameTime, config.acceleration, slowdown);
+            leftVelocity = combineMovement(leftVelocity, leftImpulse, frameTime, config.acceleration, slowdown);
+            upVelocity = combineMovement(upVelocity, upImpulse, frameTime, config.acceleration, slowdown);
+
+            double dx = (double) forwards.x * forwardVelocity + (double) left.x * leftVelocity;
+            double dy = (double) forwards.y * forwardVelocity + upVelocity + (double) left.y * leftVelocity;
+            double dz = (double) forwards.z * forwardVelocity + (double) left.z * leftVelocity;
+            dx *= frameTime;
+            dy *= frameTime;
+            dz *= frameTime;
+            double speed = Math.sqrt(dx * dx + dy * dy + dz * dz) / frameTime;
+            if (speed > config.maxSpeed) {
+                double factor = config.maxSpeed / speed;
+                forwardVelocity *= factor;
+                leftVelocity *= factor;
+                upVelocity *= factor;
+                dx *= factor;
+                dy *= factor;
+                dz *= factor;
+            }
+            if (!config.rememberInputState || currTime >= dontMoveFreeCamBefore) {
                 x += dx;
                 y += dy;
                 z += dz;
             }
         }
+
+        applyEyeLock(partialTicks);
     }
 
     public void onWorldUnload() {
@@ -205,13 +243,16 @@ public class FreeCam {
     public void onGetDebugInfoLeft(List<String> list) {
         if (active) {
             list.add("");
-            list.add(String.format("FreeCam XYZ: %.3f / %.5f / %.3f", x, y, z));
+            list.add("FreeCam");
+            list.add(String.format("XYZ: %.3f / %.5f / %.3f", x, y, z));
+            list.add(String.format("Facing: (%.1f / %.1f)",
+                    MathHelper.wrapDegrees(yRot),
+                    MathHelper.wrapDegrees(xRot)));
         }
     }
 
     private double px, py, pz, lastX, lastY, lastZ, llX, llY, llZ;
     private float eXRot, eYRot, lastXRot, lastYRot;
-    private AxisAlignedBB lastBB;
     private boolean pNoClip;
     private Entity override;
     private boolean entitiesRendering;
@@ -271,6 +312,10 @@ public class FreeCam {
         }
     }
 
+    public boolean shouldOverrideSpectator(AbstractClientPlayer player) {
+        return override == player && !entitiesRendering;
+    }
+
     public double getViewFrustumEntityPosX(double viewEntityX) {
         return override != null ? px : viewEntityX;
     }
@@ -279,123 +324,8 @@ public class FreeCam {
         return override != null ? pz : viewEntityZ;
     }
 
-    public boolean shouldOverrideSpectator(AbstractClientPlayer player) {
-        if (override == player && !entitiesRendering) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    public boolean shouldRenderHands() {
-        if (!active) {
-            return true;
-        } else {
-            return !cameraLock && config.renderHands;
-        }
-    }
-
-    public void onRunTickBeforeCalcHitResult() {
-        if (active && !cameraLock && config.target) {
-            Entity cameraEntity = mc.getRenderViewEntity();
-            if (cameraEntity == null) {
-                return;
-            }
-
-            override = cameraEntity;
-            saveCameraEntityPosition();
-            moveCameraEntityToFreeCamPosition();
-        }
-    }
-
-    public void onRunTickAfterCalcHitResult() {
-        if (active && !cameraLock && config.target) {
-            if (override != null) {
-                restoreCameraEntityPosition();
-                override = null;
-            }
-        }
-    }
-
-    public void onRenderWorldBeforeCalcHitResult() {
-        if (active && (!config.target || cameraLock)) {
-            if (override != null) {
-                restoreCameraEntityPosition();
-            }
-        }
-    }
-
-    public void onRenderWorldAfterCalcHitResult() {
-        if (active && (!config.target || cameraLock)) {
-            if (override != null) {
-                moveCameraEntityToFreeCamPosition();
-            }
-        }
-    }
-
-    public boolean shouldRenderCrosshair() {
-        if (active) {
-            if (cameraLock) {
-                return false;
-            }
-            return config.target;
-        } else {
-            return true;
-        }
-    }
-
     public boolean shouldDisableBobbing() {
-        return active && cameraLock;
-    }
-
-    public void onRenderWorldLast() {
-        if (!active || moveAlongPath) {
-            return;
-        }
-
-        List<FreeCamPath.Entry> path = getPath().get();
-        if (path.size() < 2) {
-            return;
-        }
-
-        Tessellator tessellator = Tessellator.getInstance();
-        BufferBuilder bufferBuilder = tessellator.getBuffer();
-
-        {
-            GlStateManager.pushMatrix();
-
-            GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
-            GL11.glDisable(GL11.GL_CULL_FACE);
-            GL11.glDisable(GL11.GL_LIGHTING);
-            GL11.glDisable(GL11.GL_TEXTURE_2D);
-            GL11.glDisable(GL11.GL_DEPTH_TEST);
-            GL11.glEnable(GL11.GL_BLEND);
-            GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-
-            GL11.glLineWidth(1);
-            GL11.glDepthMask(false);
-        }
-
-        float eyeHeight = mc.getRenderViewEntity() != null ? mc.getRenderViewEntity().getEyeHeight() : 0;
-
-        bufferBuilder.begin(GL11.GL_LINES, DefaultVertexFormats.POSITION);
-        GlStateManager.color(1f, 1f, 1f, 1f);
-
-        for (int i = 1; i < path.size(); i++) {
-            FreeCamPath.Entry e1 = path.get(i - 1);
-            FreeCamPath.Entry e2 = path.get(i);
-
-            bufferBuilder.pos(e1.position.x - x, e1.position.y - y + eyeHeight, e1.position.z - z).endVertex();
-            bufferBuilder.pos(e2.position.x - x, e2.position.y - y + eyeHeight, e2.position.z - z).endVertex();
-        }
-
-        tessellator.draw();
-
-        {
-            GL11.glDepthMask(true);
-            GL11.glPopAttrib();
-            GlStateManager.popMatrix();
-        }
+        return active;
     }
 
     private void enable() {
@@ -404,18 +334,25 @@ public class FreeCam {
         }
 
         Entity entity = mc.getRenderViewEntity();
-        if (entity == null) {
+        if (entity == null || mc.player == null) {
             return;
         }
 
         active = true;
         cameraLock = false;
-        moveAlongPath = false;
+        eyeLock = false;
+        followCamera = false;
         oldCameraType = mc.gameSettings.thirdPersonView;
         playerInput = mc.player.movementInput;
-        mc.player.movementInput = freecamInput = new MovementInput();
+        playerInput.updatePlayerMoveState();
+        mc.player.movementInput = freecamInput = createFreeCamInput(playerInput);
         mc.gameSettings.thirdPersonView = 0;
 
+        if (config.rememberInputState) {
+            dontMoveFreeCamBefore = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(REMEMBER_STATE_DELAY_MS);
+        }
+
+        oldEntity = entity;
         Vec3d pos = entity.getPositionEyes(1);
         x = pos.x;
         y = pos.y;
@@ -426,14 +363,13 @@ public class FreeCam {
         calculateVectors();
 
         double distance = -2;
-        x += (double)this.forwards.x * distance;
-        y += (double)this.forwards.y * distance;
-        z += (double)this.forwards.z * distance;
+        x += (double) forwards.x * distance;
+        y += (double) forwards.y * distance;
+        z += (double) forwards.z * distance;
 
         forwardVelocity = 0;
         leftVelocity = 0;
         upVelocity = 0;
-
         lastTime = System.nanoTime();
     }
 
@@ -444,22 +380,90 @@ public class FreeCam {
 
         active = false;
         mc.gameSettings.thirdPersonView = oldCameraType;
-        mc.player.movementInput = playerInput;
+        if (mc.player != null) {
+            mc.player.movementInput = playerInput;
+        }
+        if (oldEntity != null) {
+            mc.setRenderViewEntity(oldEntity);
+        }
     }
 
-    private void startPath() {
+    private MovementInput createFreeCamInput(MovementInput input) {
+        MovementInput result = new MovementInput();
+        if (config.rememberInputState) {
+            result.moveForward = input.moveForward;
+            result.moveStrafe = input.moveStrafe;
+            result.jump = input.jump;
+            result.sneak = input.sneak;
+        }
+        return result;
+    }
+
+    private void toggleCameraLock() {
+        if (active && !followCamera) {
+            cameraLock = !cameraLock;
+            mc.player.movementInput = cameraLock ? playerInput : freecamInput;
+        }
+    }
+
+    private void toggleEyeLock() {
+        if (active && !followCamera) {
+            eyeLock = !eyeLock;
+        }
+    }
+
+    private void toggleFollowCamera() {
         if (!active) {
             return;
         }
 
-        moveAlongPath = true;
-        pathStartTime = System.nanoTime();
+        followCamera = !followCamera;
+        if (followCamera) {
+            Entity entity = mc.getRenderViewEntity();
+            if (entity == null) {
+                followCamera = false;
+                return;
+            }
+
+            mc.player.movementInput = playerInput;
+            cameraLock = false;
+            eyeLock = false;
+
+            Vec3d pos = entity.getPositionEyes(1);
+            followDeltaX = x - pos.x;
+            followDeltaY = y - pos.y;
+            followDeltaZ = z - pos.z;
+        } else {
+            mc.player.movementInput = freecamInput;
+        }
+    }
+
+    private void applyEyeLock(float partialTicks) {
+        if (!eyeLock) {
+            return;
+        }
+
+        Entity entity = mc.getRenderViewEntity();
+        if (entity == null) {
+            return;
+        }
+
+        Vec3d pos = entity.getPositionEyes(partialTicks);
+        double dx = x - pos.x;
+        double dy = y - pos.y;
+        double dz = z - pos.z;
+        xRot = (float) (Math.atan2(dy, Math.sqrt(dx * dx + dz * dz)) / Math.PI * 180);
+        yRot = (float) (Math.atan2(dz, dx) / Math.PI * 180 + 90);
+        xRot = MathHelper.clamp(xRot, -90, 90);
+        calculateVectors();
     }
 
     private void calculateVectors() {
         rotation.set(0.0F, 0.0F, 0.0F, 1.0F);
         rotation.mul(Vector3f.YP.rotationDegrees(-yRot));
-        rotation.mul(Vector3f.XP.rotationDegrees(xRot));
+        if (!config.spectatorMovement) {
+            rotation.mul(Vector3f.XP.rotationDegrees(xRot));
+        }
         forwards.set(0.0F, 0.0F, 1.0F);
         forwards.transform(rotation);
         up.set(0.0F, 1.0F, 0.0F);
@@ -497,7 +501,6 @@ public class FreeCam {
         eYRot = override.rotationYaw;
         lastXRot = override.prevRotationPitch;
         lastYRot = override.prevRotationYaw;
-        lastBB = override.getEntityBoundingBox();
     }
 
     private void restoreCameraEntityPosition() {
@@ -514,19 +517,13 @@ public class FreeCam {
         override.rotationYaw = eYRot;
         override.prevRotationPitch = lastXRot;
         override.prevRotationYaw = lastYRot;
-        override.setEntityBoundingBox(lastBB);
     }
 
     private void moveCameraEntityToFreeCamPosition() {
         override.posX = override.lastTickPosX = override.prevPosX = x;
-        override.posY = override.lastTickPosY = override.prevPosY = y;
+        override.posY = override.lastTickPosY = override.prevPosY = y - override.getEyeHeight();
         override.posZ = override.lastTickPosZ = override.prevPosZ = z;
         override.rotationPitch = override.prevRotationPitch = xRot;
         override.rotationYaw = override.prevRotationYaw = yRot;
-
-        double hw = override.width / 2;
-        override.setEntityBoundingBox(new AxisAlignedBB(
-                override.posX - hw, override.posY, override.posZ - hw,
-                override.posX + hw, override.posY + override.height, override.posZ + hw));
     }
 }

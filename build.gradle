@@ -32,12 +32,24 @@ minecraft {
             property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
             property 'forge.logging.console.level', 'debug'
             arg '-torg.spongepowered.asm.launch.MixinTweaker'
+
+            mods {
+                freecam {
+                    source sourceSets.main
+                }
+            }
         }
 
         server {
             property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
             property 'forge.logging.console.level', 'debug'
             arg '-torg.spongepowered.asm.launch.MixinTweaker'
+
+            mods {
+                freecam {
+                    source sourceSets.main
+                }
+            }
         }
     }
 }
@@ -84,7 +96,15 @@ jar {
     from {
         configurations.embed.collect { it.isDirectory() ? it : zipTree(it) }
     } {
-        exclude "META-INF/MANIFSET.MF", "META-INF/maven/**", "META-INF/*.RSA", "META-INF/*.SF"
+        exclude "META-INF/MANIFEST.MF", "META-INF/maven/**", "META-INF/*.RSA", "META-INF/*.SF"
+
+        // Forge 1.12 scans every class with ASM 5, which cannot read the Java 9+
+        // classes included in Mixin for its ModLauncher support. Minecraft 1.12
+        // uses LaunchWrapper, so these classes are neither needed nor loadable.
+        exclude "module-info.class", "META-INF/versions/**"
+        exclude "org/spongepowered/asm/launch/MixinLaunchPlugin.class"
+        exclude "org/spongepowered/asm/launch/MixinTransformationService.class"
+        exclude "org/spongepowered/asm/launch/platform/container/ContainerHandleModLauncherEx*.class"
     }
 
     manifest {

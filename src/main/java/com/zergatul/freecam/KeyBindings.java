@@ -19,8 +19,8 @@ public class KeyBindings {
             Keyboard.KEY_NONE,
             "category.zergatul.freecam");
 
-    public static final KeyBinding startPath = new KeyBinding(
-            "key.zergatul.freecam.start.path",
+    public static final KeyBinding toggleFollowCam = new KeyBinding(
+            "key.zergatul.freecam.followcam.toggle",
             Keyboard.KEY_NONE,
             "category.zergatul.freecam");
 }

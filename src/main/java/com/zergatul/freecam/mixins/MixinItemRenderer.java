@@ -12,7 +12,7 @@ public abstract class MixinItemRenderer {
 
     @Inject(at = @At("HEAD"), method = "rotateArm", cancellable = true)
     private void onRotateArm(float partialTicks, CallbackInfo info) {
-        if (FreeCam.instance.isActive()) {
+        if (FreeCam.instance.shouldRenderHands() && FreeCam.instance.isActive()) {
             info.cancel();
         }
     }

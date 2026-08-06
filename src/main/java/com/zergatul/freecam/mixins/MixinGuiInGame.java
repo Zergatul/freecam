@@ -13,7 +13,7 @@ public abstract class MixinGuiInGame {
 
     @Inject(at = @At("HEAD"), method = "renderAttackIndicator(FLnet/minecraft/client/gui/ScaledResolution;)V", cancellable = true)
     private void onRenderCrosshair(float partialTicks, ScaledResolution resolution, CallbackInfo info) {
-        if (!FreeCam.instance.shouldRenderCrosshair()) {
+        if (!FreeCam.instance.shouldRenderTarget()) {
             info.cancel();
         }
     }

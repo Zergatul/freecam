@@ -6,15 +6,18 @@
     "refmap": "refmap.freecam.json",
     "client": [
         "MixinAbstractClientPlayer",
+        "MixinEntity",
+        "MixinEntityLivingBase",
         "MixinEntityPlayerSP",
         "MixinEntityRenderer",
         "MixinGuiInGame",
         "MixinGuiOverlayDebug",
         "MixinItemRenderer",
-        "MixinMinecraft",
         "MixinNetworkRegistry",
+        "MixinRenderLivingBase",
         "MixinRenderGlobal",
         "MixinRenderManager",
+        "MixinRenderPlayer",
         "MixinViewFrustum"
     ]
 }
