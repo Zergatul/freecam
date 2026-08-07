@@ -3,19 +3,17 @@ package com.zergatul.freecam.ui;
 import com.zergatul.freecam.ConfigRepository;
 import com.zergatul.freecam.FreeCamConfig;
 import com.zergatul.freecam.FreeCam;
-import net.minecraft.client.Minecraft;
+import cpw.mods.fml.client.config.GuiSlider;
 import net.minecraft.client.gui.GuiButton;
-import net.minecraft.client.gui.GuiPageButtonList;
 import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.client.gui.GuiSlider;
 import net.minecraft.client.resources.I18n;
 
-import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class FreeCamSettingsScreen extends GuiScreen implements GuiPageButtonList.GuiResponder, GuiSlider.FormatHelper {
+@SuppressWarnings("unchecked")
+public class FreeCamSettingsScreen extends GuiScreen implements GuiSlider.ISlider {
 
     private static final int ACCELERATION_ID = 0;
     private static final int MAX_SPEED_ID = 1;
@@ -143,21 +141,25 @@ public class FreeCamSettingsScreen extends GuiScreen implements GuiPageButtonLis
 
     private void addSlider(int id, int x, int y, String translationKey, ValueMapper mapper, double value) {
         GuiSlider slider = new GuiSlider(
-                this,
                 id,
                 x,
                 y,
-                translationKey,
+                LINE_WIDTH,
+                BUTTON_HEIGHT,
+                "",
+                "",
                 0,
                 1,
-                (float) mapper.toSliderValue(value),
+                mapper.toSliderValue(value),
+                true,
+                true,
                 this);
-        slider.width = LINE_WIDTH;
+        updateSliderText(slider, translationKey, mapper);
         buttonList.add(slider);
     }
 
     @Override
-    protected void actionPerformed(GuiButton button) throws IOException {
+    protected void actionPerformed(GuiButton button) {
         if (!button.enabled) {
             return;
         }
@@ -191,7 +193,7 @@ public class FreeCamSettingsScreen extends GuiScreen implements GuiPageButtonLis
     }
 
     @Override
-    protected void keyTyped(char typedChar, int keyCode) throws IOException {
+    protected void keyTyped(char typedChar, int keyCode) {
         if (keyCode == 1) {
             closeScreen();
         } else {
@@ -222,7 +224,8 @@ public class FreeCamSettingsScreen extends GuiScreen implements GuiPageButtonLis
     }
 
     private String getTooltip(int mouseX, int mouseY) {
-        for (GuiButton button : buttonList) {
+        for (Object object : buttonList) {
+            GuiButton button = (GuiButton) object;
             if (mouseX < button.xPosition || mouseY < button.yPosition ||
                     mouseX >= button.xPosition + button.width || mouseY >= button.yPosition + button.height) {
                 continue;
@@ -273,23 +276,26 @@ public class FreeCamSettingsScreen extends GuiScreen implements GuiPageButtonLis
     }
 
     @Override
-    public String getText(int id, String name, float value) {
-        return name + ": " + getMapper(id).toDisplay(value);
-    }
-
-    @Override
-    public void onTick(int id, float value) {
-        switch (id) {
+    public void onChangeSliderValue(GuiSlider slider) {
+        double value = slider.getValue();
+        switch (slider.id) {
             case ACCELERATION_ID:
                 update(config -> config.acceleration = accelerationMapper.toSettingValue(value));
+                updateSliderText(slider, "options.freecam.settings.acceleration", accelerationMapper);
                 break;
             case MAX_SPEED_ID:
                 update(config -> config.maxSpeed = maxSpeedMapper.toSettingValue(value));
+                updateSliderText(slider, "options.freecam.settings.maxspeed", maxSpeedMapper);
                 break;
             case SLOWDOWN_ID:
                 update(config -> config.slowdownFactor = slowdownMapper.toSettingValue(value));
+                updateSliderText(slider, "options.freecam.settings.slowdown", slowdownMapper);
                 break;
         }
+    }
+
+    private void updateSliderText(GuiSlider slider, String translationKey, ValueMapper mapper) {
+        slider.displayString = I18n.format(translationKey) + ": " + mapper.toDisplay(slider.getValue());
     }
 
     @Override
@@ -301,32 +307,9 @@ public class FreeCamSettingsScreen extends GuiScreen implements GuiPageButtonLis
         }
     }
 
-    private ValueMapper getMapper(int id) {
-        switch (id) {
-            case ACCELERATION_ID:
-                return accelerationMapper;
-            case MAX_SPEED_ID:
-                return maxSpeedMapper;
-            case SLOWDOWN_ID:
-                return slowdownMapper;
-            default:
-                throw new IllegalArgumentException("Unknown slider id: " + id);
-        }
-    }
-
     private void update(Consumer<FreeCamConfig> consumer) {
         FreeCamConfig config = FreeCam.INSTANCE.getConfig();
         consumer.accept(config);
         changed = true;
-    }
-
-    @Override
-    public void func_175321_a(int id, boolean value) {
-
-    }
-
-    @Override
-    public void func_175319_a(int id, String value) {
-
     }
 }

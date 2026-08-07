@@ -1,18 +1,26 @@
 package com.zergatul.freecam;
 
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import cpw.mods.fml.common.FMLCommonHandler;
+import cpw.mods.fml.common.Mod;
+import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 
-@Mod(modid = ModMain.MOD_ID, guiFactory = "com.zergatul.freecam.ui.FreeCamGuiFactory")
+@Mod(
+        modid = ModMain.MOD_ID,
+        name = ModMain.MOD_NAME,
+        version = ModMain.VERSION,
+        acceptedMinecraftVersions = "[1.7.10]",
+        acceptableRemoteVersions = "*",
+        guiFactory = "com.zergatul.freecam.ui.FreeCamGuiFactory")
 public class ModMain {
 
     public static final String MOD_ID = "freecam";
+    public static final String MOD_NAME = "FreeCam by Zergatul";
+    public static final String VERSION = "2.3.0";
 
     @Mod.EventHandler
-    public void init(FMLPreInitializationEvent event) {
+    public void preInit(FMLPreInitializationEvent event) {
         ConfigRepository.INSTANCE.init(event.getModConfigurationDirectory());
         KeyBindingsController.INSTANCE.setup();
-        MinecraftForge.EVENT_BUS.register(ModApiWrapper.instance);
+        FMLCommonHandler.instance().bus().register(ModApiWrapper.INSTANCE);
     }
 }

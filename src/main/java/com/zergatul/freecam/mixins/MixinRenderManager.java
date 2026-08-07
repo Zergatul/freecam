@@ -11,13 +11,19 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(RenderManager.class)
 public abstract class MixinRenderManager {
 
-    @Inject(at = @At("HEAD"), method = "renderEntitySimple(Lnet/minecraft/entity/Entity;F)Z", cancellable = true)
-    private void onBeforeRenderEntitySimple(Entity entity, float partialTicks, CallbackInfoReturnable<Boolean> info) {
+    @Inject(
+            method = "renderEntitySimple(Lnet/minecraft/entity/Entity;F)Z",
+            at = @At("HEAD"),
+            require = 1)
+    private void freecam$beforeRenderEntity(Entity entity, float partialTicks, CallbackInfoReturnable<Boolean> callback) {
         FreeCam.INSTANCE.onBeforeRenderEntity(entity);
     }
 
-    @Inject(at = @At("TAIL"), method = "renderEntitySimple(Lnet/minecraft/entity/Entity;F)Z")
-    private void onAfterRenderEntitySimple(Entity entity, float partialTicks, CallbackInfoReturnable<Boolean> info) {
+    @Inject(
+            method = "renderEntitySimple(Lnet/minecraft/entity/Entity;F)Z",
+            at = @At("RETURN"),
+            require = 1)
+    private void freecam$afterRenderEntity(Entity entity, float partialTicks, CallbackInfoReturnable<Boolean> callback) {
         FreeCam.INSTANCE.onAfterRenderEntity(entity);
     }
 }

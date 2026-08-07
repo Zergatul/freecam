@@ -1,12 +1,12 @@
 package com.zergatul.freecam;
 
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.gameevent.InputEvent;
-import net.minecraftforge.fml.common.gameevent.TickEvent;
+import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import cpw.mods.fml.common.gameevent.InputEvent;
+import cpw.mods.fml.common.gameevent.TickEvent;
 
 public class ModApiWrapper {
 
-    public static final ModApiWrapper instance = new ModApiWrapper();
+    public static final ModApiWrapper INSTANCE = new ModApiWrapper();
 
     private ModApiWrapper() {}
 
@@ -29,9 +29,4 @@ public class ModApiWrapper {
             FreeCam.INSTANCE.onClientTickStart();
         }
     }
-
-    /*@SubscribeEvent
-    public void onWorldUnload(WorldEvent.Unload event) {
-        FreeCamController.instance.onWorldUnload();
-    }*/
 }

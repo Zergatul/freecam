@@ -1,13 +1,13 @@
 package com.zergatul.freecam;
 
-import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
+import cpw.mods.fml.relauncher.IFMLLoadingPlugin;
 import org.spongepowered.asm.launch.MixinBootstrap;
 import org.spongepowered.asm.mixin.MixinEnvironment;
 import org.spongepowered.asm.mixin.Mixins;
 
 import java.util.Map;
 
-@IFMLLoadingPlugin.MCVersion(value = "1.8.9")
+@IFMLLoadingPlugin.MCVersion("1.7.10")
 public class FMLTweaker implements IFMLLoadingPlugin {
 
     @Override
@@ -28,7 +28,7 @@ public class FMLTweaker implements IFMLLoadingPlugin {
     @Override
     public void injectData(Map<String, Object> data) {
         MixinBootstrap.init();
-        Mixins.addConfiguration("mixins." + ModMain.MOD_ID + ".json");
+        Mixins.addConfiguration("mixins.freecam.json");
         MixinEnvironment.getDefaultEnvironment().setObfuscationContext("searge");
     }
 

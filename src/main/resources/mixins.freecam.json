@@ -1,23 +1,20 @@
 {
   "required": true,
+  "minVersion": "0.7.11",
   "compatibilityLevel": "JAVA_8",
   "package": "com.zergatul.freecam.mixins",
   "refmap": "mixins.freecam.refmap.json",
-  "verbose": true,
+  "target": "@env(DEFAULT)",
   "client": [
-    "MixinAbstractClientPlayer",
-    "MixinEntity",
-    "MixinEntityLivingBase",
-    "MixinEntityPlayerSP",
+    "MixinEntityMouseTurn",
     "MixinEntityRenderer",
-    "MixinGuiIngame",
-    "MixinGuiScreen",
-    "MixinGuiOverlayDebug",
-    "MixinItemRenderer",
-    "MixinRendererLivingEntity",
+    "MixinEntityLivingBase",
+    "MixinEntityPlayer",
     "MixinRenderGlobal",
     "MixinRenderManager",
-    "MixinRenderPlayer",
-    "MixinViewFrustum"
+    "MixinRendererLivingEntity",
+    "MixinItemRenderer",
+    "MixinGuiIngameForge",
+    "MixinGuiChat"
   ]
 }

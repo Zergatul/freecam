@@ -28,12 +28,17 @@ public class ConfigRepository {
         if (file.exists()) {
             try (FileReader fileReader = new FileReader(file)) {
                 BufferedReader reader = new BufferedReader(fileReader);
-                config = gson.fromJson(reader, FreeCamConfig.class);
+                FreeCamConfig loaded = gson.fromJson(reader, FreeCamConfig.class);
+                if (loaded != null) {
+                    config = loaded;
+                }
                 config.clamp();
                 reader.close();
             } catch (Exception e) {
                 logger.warn("Cannot read config", e);
             }
+        } else {
+            save();
         }
     }
 
@@ -52,11 +57,10 @@ public class ConfigRepository {
     }
 
     private File getFile(File directory) {
-        File configDir = new File(directory, "config");
-        if (!configDir.exists()) {
-            configDir.mkdirs();
+        if (!directory.exists() && !directory.mkdirs()) {
+            logger.warn("Cannot create config directory: {}", directory);
         }
 
-        return new File(configDir.getPath(), FILE);
+        return new File(directory, FILE);
     }
 }
