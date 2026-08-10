@@ -17,8 +17,15 @@ public abstract class MixinItemRenderer {
         }
     }
 
-    @Inject(method = "renderItemInFirstPerson(F)V", at = @At("HEAD"), require = 1)
+    @Inject(method = "renderItemInFirstPerson(F)V", at = @At("HEAD"), cancellable = true, require = 1)
     private void freecam$beforeRenderHands(float partialTicks, CallbackInfo callback) {
+        if (FreeCam.INSTANCE.isActive()) {
+            if (!FreeCam.INSTANCE.shouldRenderHands()) {
+                callback.cancel();
+                return;
+            }
+        }
+
         FreeCam.INSTANCE.onBeforeRenderHands();
     }
 

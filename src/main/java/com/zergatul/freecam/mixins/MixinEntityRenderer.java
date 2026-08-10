@@ -2,7 +2,6 @@ package com.zergatul.freecam.mixins;
 
 import com.zergatul.freecam.FreeCam;
 import net.minecraft.client.renderer.EntityRenderer;
-import net.minecraft.client.settings.GameSettings;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.util.AxisAlignedBB;
 import org.objectweb.asm.Opcodes;
@@ -51,20 +50,5 @@ public abstract class MixinEntityRenderer {
         if (FreeCam.INSTANCE.isActive()) {
             callback.cancel();
         }
-    }
-
-    @Redirect(
-            method = "renderHand(FI)V",
-            at = @At(
-                    value = "FIELD",
-                    target = "Lnet/minecraft/client/settings/GameSettings;thirdPersonView:I",
-                    opcode = Opcodes.GETFIELD,
-                    ordinal = 0),
-            require = 1)
-    private int freecam$getPerspectiveForHand(GameSettings settings) {
-        if (FreeCam.INSTANCE.isActive()) {
-            return FreeCam.INSTANCE.shouldRenderHands() ? 0 : 1;
-        }
-        return settings.thirdPersonView;
     }
 }

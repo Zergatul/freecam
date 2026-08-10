@@ -13,7 +13,7 @@ buildscript {
 
 apply plugin: 'forge'
 
-version = "2.3.0"
+version = "2.3.1"
 group = "com.zergatul.freecam"
 archivesBaseName = "zergatul.freecam-forge-1.7.10"
 def releaseJarName = "zergatul.freecam-${version}-forge-1.7.10.jar"
