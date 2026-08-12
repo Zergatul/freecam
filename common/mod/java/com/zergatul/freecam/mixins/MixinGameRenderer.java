@@ -1,0 +1,44 @@
+package com.zergatul.freecam.mixins;
+
+import com.mojang.blaze3d.matrix.MatrixStack;
+import com.zergatul.freecam.FreeCam;
+import com.zergatul.freecam.helpers.MixinGameRendererHelper;
+import net.minecraft.client.GameSettings;
+import net.minecraft.client.renderer.ActiveRenderInfo;
+import net.minecraft.client.renderer.GameRenderer;
+import org.objectweb.asm.Opcodes;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+@Mixin(GameRenderer.class)
+public abstract class MixinGameRenderer {
+
+    @Inject(at = @At("HEAD"), method = "pick(F)V")
+    private void onBeforePick(float vec33, CallbackInfo info) {
+        MixinGameRendererHelper.insidePick = true;
+    }
+
+    @Inject(at = @At("TAIL"), method = "pick(F)V")
+    private void onAfterPick(float vec33, CallbackInfo info) {
+        MixinGameRendererHelper.insidePick = false;
+    }
+
+    @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/client/settings/PointOfView;isFirstPerson()Z"), method = "renderItemInHand(Lcom/mojang/blaze3d/matrix/MatrixStack;Lnet/minecraft/client/renderer/ActiveRenderInfo;F)V")
+    private void onRenderItemInHand(MatrixStack p_228381_1_, ActiveRenderInfo p_228381_2_, float p_228381_3_, CallbackInfo info) {
+        MixinGameRendererHelper.insideRenderItemInHand = true;
+    }
+
+    @Redirect(
+            method = "renderLevel(FJLcom/mojang/blaze3d/matrix/MatrixStack;)V",
+            at = @At(value = "FIELD", target = "Lnet/minecraft/client/GameSettings;bobView:Z", opcode = Opcodes.GETFIELD))
+    private boolean onRenderLevelGetBobView(GameSettings settings) {
+        if (FreeCam.INSTANCE.isActive()) {
+            return false;
+        } else {
+            return settings.bobView;
+        }
+    }
+}

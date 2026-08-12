@@ -1,0 +1,28 @@
+{
+    "schemaVersion": 1,
+    "id": "freecam",
+    "version": "${version}",
+    "name": "Template Mod",
+    "description": "Use F6 to toggle FreeCam, or change key bind in the settings.\nType .freecam in chat to open mod settings.",
+    "authors": [
+        "Zergatul"
+    ],
+    "contact": {
+        "homepage": "https://www.curseforge.com/minecraft/mc-mods/freecam-by-zergatul",
+        "sources": "https://github.com/Zergatul/freecam",
+        "issues": "https://github.com/Zergatul/freecam/issues"
+    },
+    "license": "MIT",
+    "icon": "icon.png",
+    "environment": "client",
+    "entrypoints": {
+        "client": ["com.zergatul.freecam.fabric.ModMain"]
+    },
+    "mixins": ["freecam.mixins.json"],
+    "depends": {
+        "fabricloader": ">=0.19.3",
+        "minecraft": "~1.16.5",
+        "java": ">=8",
+        "fabric": "*"
+    }
+}
