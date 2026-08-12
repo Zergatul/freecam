@@ -267,7 +267,7 @@ public class FreeCam {
         return active && config.showMyName;
     }
 
-    public void onRenderTickStart(DeltaTracker delta) {
+    public void onRenderTickStart() {
         if (!active) {
             return;
         }
@@ -279,6 +279,7 @@ public class FreeCam {
 
         long currTime = System.nanoTime();
         float frameTime = (currTime - lastTime) / 1e9f;
+        DeltaTracker delta = mc.getDeltaTracker();
         lastTime = currTime;
 
         if (moveAlongPath) {

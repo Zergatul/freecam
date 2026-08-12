@@ -3,7 +3,6 @@ package com.zergatul.freecam.mixins;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.zergatul.freecam.FreeCam;
 import net.minecraft.client.CameraType;
-import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.renderer.GameRenderer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -15,8 +14,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class MixinGameRenderer {
 
     @Inject(at = @At("HEAD"), method = "render")
-    private void onRender(DeltaTracker deltaTracker, boolean advanceGameTime, CallbackInfo ci) {
-        FreeCam.instance.onRenderTickStart(deltaTracker);
+    private void onRender(CallbackInfo ci) {
+        FreeCam.instance.onRenderTickStart();
     }
 
     @Redirect(
@@ -27,8 +26,8 @@ public abstract class MixinGameRenderer {
     }
 
     @ModifyExpressionValue(
-            method = "renderLevel",
-            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/CameraType;isFirstPerson()Z", ordinal = 1))
+            method = "render3dHud",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/CameraType;isFirstPerson()Z"))
     private boolean onModifyIsFirstPerson3dCrosshair(boolean isFirstPerson) {
         // maybe need priority=2000 like in another call site
         return FreeCam.instance.onRenderCrosshairModifyIsFirstPerson(isFirstPerson);
