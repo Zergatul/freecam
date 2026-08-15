@@ -14,11 +14,11 @@ public abstract class MixinDebugScreenOverlay {
 
     @Inject(at = @At("TAIL"), method = "getGameInformation()Ljava/util/List;")
     private void onGetGameInformation(CallbackInfoReturnable<List<String>> info) {
-        FreeCam.instance.onRenderDebugScreenLeft(info.getReturnValue());
+        FreeCam.INSTANCE.onRenderDebugScreenLeft(info.getReturnValue());
     }
 
     @Inject(at = @At("TAIL"), method = "getSystemInformation()Ljava/util/List;")
     private void onGetSystemInformation(CallbackInfoReturnable<List<String>> info) {
-        FreeCam.instance.onRenderDebugScreenRight(info.getReturnValue());
+        FreeCam.INSTANCE.onRenderDebugScreenRight(info.getReturnValue());
     }
 }

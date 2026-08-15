@@ -9,18 +9,16 @@ import net.minecraftforge.registries.IForgeRegistry;
 
 public class ModApiWrapper {
 
-    public static final ModApiWrapper instance = new ModApiWrapper();
+    public static final ModApiWrapper INSTANCE = new ModApiWrapper();
 
     public final WrappedRegistry<Block> BLOCKS = new ForgeWrappedRegistry<>(ForgeRegistries.BLOCKS);
 
-    private ModApiWrapper() {
-
-    }
+    private ModApiWrapper() {}
 
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase == TickEvent.Phase.START) {
-            FreeCam.instance.onClientTickStart();
+            FreeCam.INSTANCE.onClientTickStart();
         }
     }
 

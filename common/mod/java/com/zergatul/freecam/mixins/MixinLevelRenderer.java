@@ -21,7 +21,7 @@ public abstract class MixinLevelRenderer {
             at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/LevelRenderer;setupRender(Lnet/minecraft/client/Camera;Lnet/minecraft/client/renderer/culling/Frustum;ZZ)V"),
             index = 3)
     private boolean onCallSetupRender(boolean isSpectator) {
-        if (FreeCam.instance.isActive()) {
+        if (FreeCam.INSTANCE.isActive()) {
             return true;
         } else {
             return isSpectator;
@@ -38,7 +38,8 @@ public abstract class MixinLevelRenderer {
             GameRenderer gameRenderer,
             LightTexture lightTexture,
             Matrix4f projectionMatrix,
-            CallbackInfo ci) {
-        FreeCam.instance.onRenderWorldLast(poseStack, projectionMatrix, camera);
+            CallbackInfo ci
+    ) {
+        FreeCam.INSTANCE.onRenderWorldLast(poseStack, projectionMatrix, camera);
     }
 }

@@ -10,7 +10,7 @@ import java.io.*;
 
 public class ConfigRepository {
 
-    public static final ConfigRepository instance = new ConfigRepository();
+    public static final ConfigRepository INSTANCE = new ConfigRepository();
 
     private static final String FILE = "zergatul.freecam.json";
 
@@ -19,9 +19,7 @@ public class ConfigRepository {
             .setPrettyPrinting()
             .create();
 
-    private ConfigRepository() {
-
-    }
+    private ConfigRepository() {}
 
     public void save(FreeCamConfig config) {
         File file = getFile();
@@ -29,8 +27,7 @@ public class ConfigRepository {
             BufferedWriter writer = new BufferedWriter(new FileWriter(file));
             gson.toJson(config, writer);
             writer.close();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             logger.warn("Cannot write config", e);
         }
     }

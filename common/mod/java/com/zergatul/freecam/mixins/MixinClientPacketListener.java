@@ -1,6 +1,6 @@
 package com.zergatul.freecam.mixins;
 
-import com.zergatul.freecam.ChatCommandManager;
+import com.zergatul.freecam.FreeCam;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -12,7 +12,7 @@ public abstract class MixinClientPacketListener {
 
     @Inject(at = @At("HEAD"), method = "sendChat(Ljava/lang/String;)V", cancellable = true)
     private void onSendChatMessage(String message, CallbackInfo info) {
-        if (ChatCommandManager.instance.handleChatMessage(message)) {
+        if (FreeCam.INSTANCE.onClientChat(message)) {
             info.cancel();
         }
     }

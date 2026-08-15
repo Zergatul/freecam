@@ -2,6 +2,7 @@ package com.zergatul.freecam;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
+import com.zergatul.freecam.ui.FreeCamSettingsScreen;
 import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
 import net.minecraft.client.Camera;
@@ -9,11 +10,11 @@ import net.minecraft.client.CameraType;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.Input;
-import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.phys.BlockHitResult;
@@ -27,10 +28,13 @@ import org.lwjgl.opengl.GL11;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class FreeCam {
 
-    public static final FreeCam instance = new FreeCam();
+    public static final FreeCam INSTANCE = new FreeCam();
+
+    private final static int REMEMBER_STATE_DELAY_MS = 400;
 
     private final Minecraft mc = Minecraft.getInstance();
     private final Quaternionf rotation = new Quaternionf(0.0F, 0.0F, 0.0F, 1.0F);
@@ -38,7 +42,7 @@ public class FreeCam {
     private final Vector3f up = new Vector3f(0.0F, 1.0F, 0.0F);
     private final Vector3f left = new Vector3f(1.0F, 0.0F, 0.0F);
     private final FreeCamPath path = new FreeCamPath(this);
-    private final FreeCamConfig config = ConfigRepository.instance.load();
+    private final FreeCamConfig config = ConfigRepository.INSTANCE.load();
     private boolean active;
     private CameraType oldCameraType;
     private Input playerInput;
@@ -57,10 +61,11 @@ public class FreeCam {
     private boolean gameRendererPicking;
     private boolean moveAlongPath;
     private long pathStartTime;
+    private long dontMoveFreeCamBefore;
+    private int openSettingsScreenTicks = -1;
+    private boolean renderingEntityInInventory;
 
-    private FreeCam() {
-
-    }
+    private FreeCam() {}
 
     public boolean isActive() {
         return active;
@@ -156,16 +161,22 @@ public class FreeCam {
             return;
         }
 
+        assert mc.player != null;
+
         active = true;
         cameraLock = false;
         eyeLock = false;
         followCamera = false;
         oldCameraType = mc.options.getCameraType();
         playerInput = mc.player.input;
-        mc.player.input = freecamInput = new Input();
+        mc.player.input = freecamInput = createFreeCamInput(playerInput);
         mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
         if (oldCameraType.isFirstPerson() != mc.options.getCameraType().isFirstPerson()) {
             mc.gameRenderer.checkEntityPostEffect(mc.options.getCameraType().isFirstPerson() ? mc.getCameraEntity() : null);
+        }
+
+        if (config.rememberInputState) {
+            dontMoveFreeCamBefore = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(REMEMBER_STATE_DELAY_MS);
         }
 
         float frameTime = mc.getFrameTime();
@@ -260,6 +271,21 @@ public class FreeCam {
         }
     }
 
+    public boolean onClientChat(String message) {
+        if (message == null || !message.trim().toLowerCase(Locale.ROOT).startsWith(".freecam")) {
+            return false;
+        }
+
+        mc.gui.getChat().addRecentChat(message);
+
+        openSettingsScreenTicks = 4;
+        return true;
+    }
+
+    public boolean shouldShowMyName() {
+        return active && config.showMyName && !renderingEntityInInventory;
+    }
+
     public void onRenderTickStart(float partialTicks) {
         if (!active) {
             return;
@@ -319,9 +345,11 @@ public class FreeCam {
                 dy *= factor;
                 dz *= factor;
             }
-            x += dx;
-            y += dy;
-            z += dz;
+            if (!config.rememberInputState || dontMoveFreeCamBefore < currTime) {
+                x += dx;
+                y += dy;
+                z += dz;
+            }
         }
 
         applyEyeLock(partialTicks);
@@ -331,6 +359,11 @@ public class FreeCam {
         if (active) {
             disableKey(mc.options.keyTogglePerspective);
             playerInput.tick(false, 0);
+        }
+
+        if (openSettingsScreenTicks > 0 && --openSettingsScreenTicks == 0) {
+            openSettingsScreenTicks = -1;
+            mc.setScreen(new FreeCamSettingsScreen());
         }
     }
 
@@ -408,6 +441,9 @@ public class FreeCam {
             return;
         }
 
+        assert mc.level != null;
+        assert mc.player != null;
+
         // TODO: remove and just use free cam target as normal?
         freecamHitResultPicking = true;
         try {
@@ -417,7 +453,7 @@ public class FreeCam {
                 BlockState state = mc.level.getBlockState(pos);
                 list.add("");
                 list.add(ChatFormatting.UNDERLINE + "Free Cam Targeted Block: " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ());
-                list.add(String.valueOf(ModApiWrapper.instance.BLOCKS.getKey(state.getBlock())));
+                list.add(String.valueOf(ModApiWrapper.INSTANCE.BLOCKS.getKey(state.getBlock())));
 
                 for (var entry: state.getValues().entrySet()) {
                     list.add(getPropertyValueString(entry));
@@ -425,8 +461,7 @@ public class FreeCam {
 
                 state.getTags().map(tag -> "#" + tag.location()).forEach(list::add);
             }
-        }
-        finally {
+        } finally {
             freecamHitResultPicking = false;
         }
     }
@@ -437,6 +472,31 @@ public class FreeCam {
 
     public void onAfterGameRendererPick() {
         gameRendererPicking = false;
+    }
+
+    public void onBeforeRenderEntityInInventory() {
+        renderingEntityInInventory = true;
+    }
+
+    public void onAfterRenderEntityInInventory() {
+        renderingEntityInInventory = false;
+    }
+
+    private Input createFreeCamInput(Input playerInput) {
+        if (config.rememberInputState) {
+            var input = new Input();
+            input.up = playerInput.up;
+            input.down = playerInput.down;
+            input.left = playerInput.left;
+            input.right = playerInput.right;
+            input.jumping = playerInput.jumping;
+            input.shiftKeyDown = playerInput.shiftKeyDown;
+            input.leftImpulse = playerInput.leftImpulse;
+            input.forwardImpulse = playerInput.forwardImpulse;
+            return input;
+        } else {
+            return new Input();
+        }
     }
 
     private void applyEyeLock(float partialTicks) {
@@ -460,7 +520,7 @@ public class FreeCam {
     }
 
     private void calculateVectors() {
-        rotation.rotationYXZ(-yRot * ((float)Math.PI / 180F), xRot * ((float)Math.PI / 180F), 0.0F);
+        rotation.rotationYXZ(-yRot * ((float)Math.PI / 180F), (config.spectatorMovement ? 0 : xRot) * ((float)Math.PI / 180F), 0.0F);
         forwards.set(0.0F, 0.0F, 1.0F).rotate(rotation);
         up.set(0.0F, 1.0F, 0.0F).rotate(rotation);
         left.set(1.0F, 0.0F, 0.0F).rotate(rotation);

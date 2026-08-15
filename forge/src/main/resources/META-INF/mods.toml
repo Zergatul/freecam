@@ -41,14 +41,8 @@ authors="${mod_authors}" #optional
 # The description text for the mod (multi line!) (#mandatory)
 description='''
 Use F6 to toggle FreeCam, or change key bind in the settings.
-
-You can control mod settings from in-game chat:
-.freecam - displays current settings
-.freecam speed 100 - set maximum speed, blocks/second (default 50)
-.freecam acc 100 - set acceleration, blocks/second^2 (default 50)
-.freecam slow 0.001 - set slowdown speed when you release all buttons. Every second speed is multiplied by this value (default 0.01)
-.freecam hands 1 - show hands while in freecam (default 0)
-.freecam target 0 - disable custom targeting in freecam (default 1)
+Open Mods menu, select FreeCam, click Config to access mod settings.
+Alternatively you can type .freecam in chat to open mod settings.
 '''
 # A dependency - use the . to indicate dependency for a specific modid. Dependencies are optional.
 [[dependencies.${mod_id}]] #optional

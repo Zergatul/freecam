@@ -10,8 +10,9 @@ public class ModMain implements ClientModInitializer {
         KeyBindingHelper.registerKeyBinding(KeyBindings.toggleFreeCam);
         KeyBindingHelper.registerKeyBinding(KeyBindings.toggleCameraLock);
         KeyBindingHelper.registerKeyBinding(KeyBindings.toggleEyeLock);
-        KeyBindingHelper.registerKeyBinding(KeyBindings.startPath);
+        KeyBindingHelper.registerKeyBinding(KeyBindings.toggleFollowCam);
+        //KeyBindingHelper.registerKeyBinding(KeyBindings.startPath);
 
-        ModApiWrapper.instance.setup();
+        ModApiWrapper.INSTANCE.setup();
     }
 }

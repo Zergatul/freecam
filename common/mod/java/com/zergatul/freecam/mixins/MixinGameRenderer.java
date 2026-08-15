@@ -14,23 +14,23 @@ public abstract class MixinGameRenderer {
 
     @Inject(at = @At("HEAD"), method = "render(FJZ)V")
     private void onRender(float tickDelta, long startTime, boolean tick, CallbackInfo ci) {
-        FreeCam.instance.onRenderTickStart(tickDelta);
+        FreeCam.INSTANCE.onRenderTickStart(tickDelta);
     }
 
     @Inject(at = @At("HEAD"), method = "pick(F)V")
     private void onBeforePick(float vec33, CallbackInfo info) {
-        FreeCam.instance.onBeforeGameRendererPick();
+        FreeCam.INSTANCE.onBeforeGameRendererPick();
     }
 
     @Inject(at = @At("RETURN"), method = "pick(F)V")
     private void onAfterPick(float vec33, CallbackInfo info) {
-        FreeCam.instance.onAfterGameRendererPick();
+        FreeCam.INSTANCE.onAfterGameRendererPick();
     }
 
     @Redirect(
             method = "renderItemInHand(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/Camera;F)V",
             at = @At(value = "INVOKE", target = "Lnet/minecraft/client/CameraType;isFirstPerson()Z", ordinal = 0))
     private boolean onRenderItemInHandIsFirstPerson(CameraType cameraType) {
-        return FreeCam.instance.onRenderItemInHandIsFirstPerson(cameraType);
+        return FreeCam.INSTANCE.onRenderItemInHandIsFirstPerson(cameraType);
     }
 }

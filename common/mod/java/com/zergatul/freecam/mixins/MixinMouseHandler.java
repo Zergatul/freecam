@@ -13,6 +13,6 @@ public abstract class MixinMouseHandler {
 
     @WrapMethodInsideIfCondition(method = "turnPlayer", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/player/LocalPlayer;turn(DD)V"))
     private static boolean onBeforeCallPlayerTurn(LocalPlayer player, double yRot, double xRot) {
-        return FreeCam.instance.onPlayerTurn(yRot, xRot);
+        return FreeCam.INSTANCE.onPlayerTurn(yRot, xRot);
     }
 }

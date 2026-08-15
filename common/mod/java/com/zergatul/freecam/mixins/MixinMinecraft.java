@@ -14,16 +14,16 @@ public abstract class MixinMinecraft {
 
     @Inject(at = @At("HEAD"), method = "clearLevel(Lnet/minecraft/client/gui/screens/Screen;)V")
     private void onClearLevel(Screen screen, CallbackInfo ci) {
-        FreeCam.instance.onWorldUnload();
+        FreeCam.INSTANCE.onWorldUnload();
     }
 
     @Inject(at = @At("HEAD"), method = "setLevel(Lnet/minecraft/client/multiplayer/ClientLevel;)V")
     private void onSetLevel(ClientLevel level, CallbackInfo ci) {
-        FreeCam.instance.onWorldUnload();
+        FreeCam.INSTANCE.onWorldUnload();
     }
 
     @Inject(at = @At("TAIL"), method = "handleKeybinds()V")
     private void onHandleKeyBindings(CallbackInfo info) {
-        FreeCam.instance.onHandleKeyBindings();
+        FreeCam.INSTANCE.onHandleKeyBindings();
     }
 }

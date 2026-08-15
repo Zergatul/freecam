@@ -8,7 +8,7 @@ import net.minecraft.world.level.block.Block;
 
 public class ModApiWrapper {
 
-    public static final ModApiWrapper instance = new ModApiWrapper();
+    public static final ModApiWrapper INSTANCE = new ModApiWrapper();
 
     public final WrappedRegistry<Block> BLOCKS = new VanillaWrapperRegistry<>(BuiltInRegistries.BLOCK);
 
@@ -18,7 +18,7 @@ public class ModApiWrapper {
 
     public void setup() {
         ClientTickEvents.START_CLIENT_TICK.register(client -> {
-            FreeCam.instance.onClientTickStart();
+            FreeCam.INSTANCE.onClientTickStart();
         });
     }
 
