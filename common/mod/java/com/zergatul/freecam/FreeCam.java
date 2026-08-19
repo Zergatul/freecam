@@ -302,9 +302,10 @@ public class FreeCam {
             }
         } else {
             ClientInput input = playerInput;
-            float forwardImpulse = !cameraLock ? (input.keyPresses.forward() ? 1 : 0) + (input.keyPresses.backward() ? -1 : 0) : 0;
-            float leftImpulse = !cameraLock ? (input.keyPresses.left() ? 1 : 0) + (input.keyPresses.right() ? -1 : 0) : 0;
-            float upImpulse = !cameraLock ? ((input.keyPresses.jump() ? 1 : 0) + (input.keyPresses.shift() ? -1 : 0)) : 0;
+            boolean handleKeys = !cameraLock && (!config.rememberInputState || dontMoveFreeCamBefore < currTime);
+            float forwardImpulse = handleKeys ? (input.keyPresses.forward() ? 1 : 0) + (input.keyPresses.backward() ? -1 : 0) : 0;
+            float leftImpulse = handleKeys ? (input.keyPresses.left() ? 1 : 0) + (input.keyPresses.right() ? -1 : 0) : 0;
+            float upImpulse = handleKeys ? ((input.keyPresses.jump() ? 1 : 0) + (input.keyPresses.shift() ? -1 : 0)) : 0;
             double slowdown = Math.pow(config.slowdownFactor, frameTime);
             forwardVelocity = combineMovement(forwardVelocity, forwardImpulse, frameTime, config.acceleration, slowdown);
             leftVelocity = combineMovement(leftVelocity, leftImpulse, frameTime, config.acceleration, slowdown);
@@ -326,11 +327,10 @@ public class FreeCam {
                 dy *= factor;
                 dz *= factor;
             }
-            if (!config.rememberInputState || dontMoveFreeCamBefore < currTime) {
-                x += dx;
-                y += dy;
-                z += dz;
-            }
+
+            x += dx;
+            y += dy;
+            z += dz;
         }
 
         applyEyeLock(delta.getGameTimeDeltaPartialTick(true));
