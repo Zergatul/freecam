@@ -1,0 +1,43 @@
+name: Build
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@main
+
+      - name: Setup Java
+        uses: actions/setup-java@main
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Build Forge
+        run: |
+          cd forge
+          ./gradlew build
+
+      - name: Build Fabric
+        run: |
+          cd fabric
+          ./gradlew build
+
+      - name: Upload Forge Artifacts
+        uses: actions/upload-artifact@main
+        with:
+          name: forge
+          path: forge/build/libs/*.jar
+          compression-level: 0
+          if-no-files-found: error
+
+      - name: Upload Fabric Artifacts
+        uses: actions/upload-artifact@main
+        with:
+          name: fabric
+          path: fabric/build/libs/*.jar
+          compression-level: 0
+          if-no-files-found: error
