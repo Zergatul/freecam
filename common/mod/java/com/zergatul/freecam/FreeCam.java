@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 public class FreeCam {
 
     public static final FreeCam instance = new FreeCam();
+    public static final String SERVER_DISABLE_CHANNEL = "freecam:disable_freecam";
 
     private final static int REMEMBER_STATE_DELAY_MS = 400;
 
@@ -38,6 +39,7 @@ public class FreeCam {
     private final FreeCamPath path = new FreeCamPath(this);
     private final FreeCamConfig config = ConfigRepository.instance.load();
     private boolean active;
+    private boolean serverDisabled;
     private CameraType oldCameraType;
     private ClientInput playerInput;
     private ClientInput freecamInput;
@@ -154,7 +156,7 @@ public class FreeCam {
     }
 
     public void enable() {
-        if (active) {
+        if (active || serverDisabled) {
             return;
         }
 
@@ -207,6 +209,11 @@ public class FreeCam {
         mc.options.setCameraType(oldCameraType);
         mc.player.input = playerInput;
         switchCameraType(oldCameraType);
+    }
+
+    public void disableOnServer() {
+        serverDisabled = true;
+        disable();
     }
 
     public void onHandleKeyBindings() {
@@ -349,6 +356,11 @@ public class FreeCam {
 
     public void onLevelChange() {
         disable();
+    }
+
+    public void onDisconnect() {
+        disable();
+        serverDisabled = false;
     }
 
     public void onRenderWorldLast(Matrix4f pose, Matrix4f projectionMatrix, Camera camera) {
