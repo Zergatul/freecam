@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 public interface DebugScreenEntriesAccessor {
 
     @Invoker("register")
-    static Identifier register_ZFC(Identifier id, DebugScreenEntry entry) {
+    static Identifier register_FC(Identifier id, DebugScreenEntry entry) {
         throw new AssertionError();
     }
 }

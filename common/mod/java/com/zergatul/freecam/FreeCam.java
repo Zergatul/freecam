@@ -1,11 +1,12 @@
 package com.zergatul.freecam;
 
-import com.mojang.blaze3d.vertex.*;
+import com.zergatul.freecam.ui.FreeCamSettingsScreen;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.*;
 import net.minecraft.client.gui.components.debug.DebugScreenDisplayer;
 import net.minecraft.client.player.ClientInput;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.util.Util;
@@ -17,7 +18,6 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 
 public class FreeCam {
 
-    public static final FreeCam instance = new FreeCam();
+    public static final FreeCam INSTANCE = new FreeCam();
 
     private final static int REMEMBER_STATE_DELAY_MS = 400;
 
@@ -35,31 +35,28 @@ public class FreeCam {
     private final Vector3f forwards = new Vector3f(0.0F, 0.0F, 1.0F);
     private final Vector3f up = new Vector3f(0.0F, 1.0F, 0.0F);
     private final Vector3f left = new Vector3f(1.0F, 0.0F, 0.0F);
-    private final FreeCamPath path = new FreeCamPath(this);
-    private final FreeCamConfig config = ConfigRepository.instance.load();
+    private final FreeCamConfig config = ConfigRepository.INSTANCE.load();
     private boolean active;
     private CameraType oldCameraType;
     private ClientInput playerInput;
-    private ClientInput freecamInput;
+    private ClientInput freeCamInput;
     private double x, y, z;
     private float yRot, xRot;
     private double forwardVelocity;
     private double leftVelocity;
     private double upVelocity;
     private long lastTime;
-    private boolean freecamHitResultPicking;
+    private boolean freeCamHitResultPicking;
     private boolean cameraLock;
     private boolean eyeLock;
     private boolean followCamera;
     private double followDeltaX, followDeltaY, followDeltaZ;
     private boolean picking;
-    private boolean moveAlongPath;
-    private long pathStartTime;
     private long dontMoveFreeCamBefore;
+    private int openSettingsScreenTicks = -1;
+    private boolean renderingPlayerInInventory;
 
-    private FreeCam() {
-
-    }
+    private FreeCam() {}
 
     public boolean isActive() {
         return active;
@@ -97,10 +94,6 @@ public class FreeCam {
         return config;
     }
 
-    public FreeCamPath getPath() {
-        return path;
-    }
-
     public void toggle() {
         if (active) {
             disable();
@@ -117,7 +110,7 @@ public class FreeCam {
             if (cameraLock) {
                 mc.player.input = playerInput;
             } else {
-                mc.player.input = freecamInput;
+                mc.player.input = freeCamInput;
             }
         }
     }
@@ -148,7 +141,7 @@ public class FreeCam {
                 followDeltaY = y - pos.y;
                 followDeltaZ = z - pos.z;
             } else {
-                mc.player.input = freecamInput;
+                mc.player.input = freeCamInput;
             }
         }
     }
@@ -168,7 +161,7 @@ public class FreeCam {
         eyeLock = false;
         followCamera = false;
         playerInput = mc.player.input;
-        mc.player.input = freecamInput = createFreeCamInput(playerInput);
+        mc.player.input = freeCamInput = createFreeCamInput(playerInput);
         switchCameraType(CameraType.THIRD_PERSON_BACK);
 
         if (config.rememberInputState) {
@@ -228,14 +221,11 @@ public class FreeCam {
         while (KeyBindings.toggleFollowCam.consumeClick()) {
             toggleFollowCamera();
         }
-        while (KeyBindings.startPath.consumeClick()) {
-            startPath();
-        }
     }
 
     public boolean onPlayerTurn(double yRot, double xRot) {
         if (active && !cameraLock && !followCamera) {
-            if (!eyeLock && !moveAlongPath) {
+            if (!eyeLock) {
                 this.xRot += (float) xRot * 0.15F;
                 this.yRot += (float) yRot * 0.15F;
                 this.xRot = Mth.clamp(this.xRot, -90, 90);
@@ -263,11 +253,30 @@ public class FreeCam {
         }
     }
 
-    public boolean shouldShowMyName() {
-        return active && config.showMyName;
+    public boolean onClientChat(String message) {
+        if (message == null || !message.trim().toLowerCase(Locale.ROOT).startsWith(".freecam")) {
+            return false;
+        }
+
+        mc.gui.hud.getChat().addRecentChat(message);
+
+        openSettingsScreenTicks = 4;
+        return true;
     }
 
-    public void onRenderTickStart(DeltaTracker delta) {
+    public boolean shouldShowMyName() {
+        return active && config.showMyName && !renderingPlayerInInventory;
+    }
+
+    public void onBeforeRenderPlayerInInventory() {
+        renderingPlayerInInventory = true;
+    }
+
+    public void onAfterRenderPlayerInInventory() {
+        renderingPlayerInInventory = false;
+    }
+
+    public void onRenderTickStart() {
         if (!active) {
             return;
         }
@@ -279,20 +288,10 @@ public class FreeCam {
 
         long currTime = System.nanoTime();
         float frameTime = (currTime - lastTime) / 1e9f;
+        DeltaTracker delta = mc.getDeltaTracker();
         lastTime = currTime;
 
-        if (moveAlongPath) {
-            FreeCamPath.Entry entry = path.interpolate((currTime - pathStartTime) / 1e6);
-            if (entry == null) {
-                moveAlongPath = false;
-            } else {
-                x = entry.position().x;
-                y = entry.position().y;
-                z = entry.position().z;
-                xRot = (float) entry.xRot();
-                yRot = (float) entry.yRot();
-            }
-        } else if (followCamera) {
+        if (followCamera) {
             Entity entity = mc.getCameraEntity();
             if (entity != null) {
                 Vec3 pos = entity.getEyePosition(delta.getGameTimeDeltaPartialTick(true));
@@ -345,58 +344,20 @@ public class FreeCam {
                 playerInput.tick();
             }
         }
+
+        if (openSettingsScreenTicks > 0 && --openSettingsScreenTicks == 0) {
+            openSettingsScreenTicks = -1;
+            mc.gui.setScreen(new FreeCamSettingsScreen());
+        }
     }
 
     public void onLevelChange() {
         disable();
     }
 
-    public void onRenderWorldLast(Matrix4f pose, Matrix4f projectionMatrix, Camera camera) {
-        if (!active || moveAlongPath) {
-            return;
-        }
-
-        List<FreeCamPath.Entry> path = getPath().get();
-        if (path.size() < 2) {
-            return;
-        }
-
-        /*Tesselator tesselator = Tesselator.getInstance();
-        BufferBuilder bufferBuilder = tesselator.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
-        RenderSystem.setShaderColor(1f, 1.0f, 1f, 1f);
-
-        Vec3 view = camera.getPosition();
-        for (int i = 1; i < path.size(); i++) {
-            FreeCamPath.Entry e1 = path.get(i - 1);
-            FreeCamPath.Entry e2 = path.get(i);
-
-            bufferBuilder.addVertex(
-                            (float) (e1.position().x - view.x),
-                            (float) (e1.position().y - view.y),
-                            (float) (e1.position().z - view.z))
-                    .setColor(1, 1, 1, 1f);
-            bufferBuilder.addVertex(
-                            (float) (e2.position().x - view.x),
-                            (float) (e2.position().y - view.y),
-                            (float) (e2.position().z - view.z))
-                    .setColor(1, 1, 1, 1f);
-        }
-
-        renderLines(bufferBuilder, pose, projectionMatrix);*/
-    }
-
-    private void startPath() {
-        if (!active) {
-            return;
-        }
-
-        moveAlongPath = true;
-        pathStartTime = System.nanoTime();
-    }
-
     public boolean shouldOverrideCameraEntityPosition(Entity entity) {
         if (active && !cameraLock && !eyeLock && !followCamera && config.target) {
-            return entity == mc.getCameraEntity() && picking || freecamHitResultPicking;
+            return entity == mc.getCameraEntity() && picking || freeCamHitResultPicking;
         } else {
             return false;
         }
@@ -421,7 +382,7 @@ public class FreeCam {
         }
 
         // TODO: remove and just use free cam target as normal?
-        freecamHitResultPicking = true;
+        freeCamHitResultPicking = true;
         try {
             HitResult hit = mc.player.pick(20.0D, 0.0F, false);
             if (hit.getType() == HitResult.Type.BLOCK) {
@@ -430,7 +391,7 @@ public class FreeCam {
 
                 List<String> lines = new ArrayList<>();
                 lines.add(ChatFormatting.UNDERLINE + "Free Cam Targeted Block: " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ());
-                lines.add(String.valueOf(ModLoaderBridgeInstance.get().getBlockRegistry().getKey(state.getBlock())));
+                lines.add(String.valueOf(BuiltInRegistries.BLOCK.getKey(state.getBlock())));
 
                 state.getValues().forEach(value -> lines.add(getPropertyValueString(value)));
                 state.tags().map(tag -> "#" + tag.location()).forEach(lines::add);
@@ -439,7 +400,7 @@ public class FreeCam {
             }
         }
         finally {
-            freecamHitResultPicking = false;
+            freeCamHitResultPicking = false;
         }
     }
 
@@ -532,29 +493,6 @@ public class FreeCam {
     private void disableKey(KeyMapping key) {
         while (key.consumeClick()) {}
         key.setDown(false);
-    }
-
-    private void renderLines(BufferBuilder bufferBuilder, Matrix4f pose, Matrix4f projection) {
-        /*RenderSystem.disableCull();
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.disableDepthTest();
-        GL11.glEnable(GL11.GL_LINE_SMOOTH);
-
-        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-
-        SharedVertexBuffer.instance.bind();
-        SharedVertexBuffer.instance.upload(bufferBuilder.buildOrThrow());
-        SharedVertexBuffer.instance.drawWithShader(pose, projection, GameRenderer.getPositionColorShader());
-        VertexBuffer.unbind();
-
-        RenderSystem.disableBlend();
-        RenderSystem.enableCull();
-        RenderSystem.enableDepthTest();*/
-    }
-
-    private static class SharedVertexBuffer {
-        //public static final VertexBuffer instance = new VertexBuffer(VertexBuffer.Usage.DYNAMIC);
     }
 
     private static class FreeCamInput extends ClientInput {

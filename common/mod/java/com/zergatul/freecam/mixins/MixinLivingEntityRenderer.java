@@ -15,6 +15,6 @@ public abstract class MixinLivingEntityRenderer {
             method = "shouldShowName",
             at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;getCameraEntity()Lnet/minecraft/world/entity/Entity;"))
     private static Entity onShouldShowNameChangeCameraEntity(Entity entity) {
-        return FreeCam.instance.shouldShowMyName() ? null : entity;
+        return FreeCam.INSTANCE.shouldShowMyName() ? null : entity;
     }
 }
