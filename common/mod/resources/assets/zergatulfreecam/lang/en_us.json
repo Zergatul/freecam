@@ -4,7 +4,6 @@
   "key.zergatul.freecam.cameralock.toggle": "Toggle Camera Lock",
   "key.zergatul.freecam.eyelock.toggle": "Toggle Eye Lock",
   "key.zergatul.freecam.followcam.toggle": "Toggle Follow Camera",
-  "key.zergatul.freecam.start.path": "Start Path",
   "options.freecam.settings.title": "FreeCam Settings",
   "options.freecam.settings.acceleration": "Acceleration",
   "options.freecam.settings.acceleration.tooltip": "In blocks per second squared",

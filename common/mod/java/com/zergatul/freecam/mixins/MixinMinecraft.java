@@ -14,31 +14,31 @@ public abstract class MixinMinecraft {
 
     @Inject(at = @At("HEAD"), method = "clearClientLevel")
     private void onClearClientLevel(Screen screen, CallbackInfo ci) {
-        FreeCam.instance.onLevelChange();
+        FreeCam.INSTANCE.onLevelChange();
     }
 
     @Inject(at = @At("HEAD"), method = "disconnect(Lnet/minecraft/client/gui/screens/Screen;ZZ)V")
     private void onDisconnect(Screen screen, boolean keepResourcePacks, boolean stopSounds, CallbackInfo ci) {
-        FreeCam.instance.onLevelChange();
+        FreeCam.INSTANCE.onLevelChange();
     }
 
     @Inject(at = @At("HEAD"), method = "setLevel")
     private void onSetLevel(ClientLevel level, CallbackInfo ci) {
-        FreeCam.instance.onLevelChange();
+        FreeCam.INSTANCE.onLevelChange();
     }
 
     @Inject(at = @At("TAIL"), method = "handleKeybinds")
     private void onHandleKeyBindings(CallbackInfo info) {
-        FreeCam.instance.onHandleKeyBindings();
+        FreeCam.INSTANCE.onHandleKeyBindings();
     }
 
     @Inject(method = "pick", at = @At("HEAD"))
     private void onBeforePick(float partialTicks, CallbackInfo info) {
-        FreeCam.instance.onBeforePick();
+        FreeCam.INSTANCE.onBeforePick();
     }
 
     @Inject(method = "pick", at = @At("TAIL"))
     private void onAfterPick(float partialTicks, CallbackInfo info) {
-        FreeCam.instance.onAfterPick();
+        FreeCam.INSTANCE.onAfterPick();
     }
 }

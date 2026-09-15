@@ -3,7 +3,6 @@ package com.zergatul.freecam.ui;
 import com.zergatul.freecam.ConfigRepository;
 import com.zergatul.freecam.FreeCam;
 import com.zergatul.freecam.FreeCamConfig;
-import net.minecraft.client.InputType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
@@ -14,6 +13,8 @@ import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 
 import java.text.DecimalFormat;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 public class FreeCamSettingsScreen extends Screen {
 
@@ -44,7 +45,7 @@ public class FreeCamSettingsScreen extends Screen {
     private static final int LINE_HEIGHT = BUTTON_HEIGHT + GAP / 2;
 
     private final Screen previous;
-    private final FreeCamConfig originalConfig;
+    private boolean changed;
 
     public FreeCamSettingsScreen() {
         this(null);
@@ -53,7 +54,6 @@ public class FreeCamSettingsScreen extends Screen {
     public FreeCamSettingsScreen(Screen previous) {
         super(TITLE);
         this.previous = previous;
-        this.originalConfig = FreeCam.instance.getConfig().clone();
     }
 
     @Override
@@ -80,8 +80,8 @@ public class FreeCamSettingsScreen extends Screen {
                         return String.format("%.1f", toSettingValue(value));
                     }
                 })
-                .setter((button, value) -> FreeCam.instance.getConfig().acceleration = value)
-                .value(FreeCam.instance.getConfig().acceleration)
+                .setter((_, value) -> update(config -> config.acceleration = value))
+                .value(FreeCam.INSTANCE.getConfig().acceleration)
                 .create());
 
         y += LINE_HEIGHT;
@@ -96,8 +96,8 @@ public class FreeCamSettingsScreen extends Screen {
                         return String.format("%.1f", toSettingValue(value));
                     }
                 })
-                .setter((button, value) -> FreeCam.instance.getConfig().maxSpeed = value)
-                .value(FreeCam.instance.getConfig().maxSpeed)
+                .setter((_, value) -> update(config -> config.maxSpeed = value))
+                .value(FreeCam.INSTANCE.getConfig().maxSpeed)
                 .create());
 
         y += LINE_HEIGHT;
@@ -121,43 +121,33 @@ public class FreeCamSettingsScreen extends Screen {
                         return Integer.toString((int) Math.round(value * 100));
                     }
                 })
-                .setter((button, value) -> FreeCam.instance.getConfig().slowdownFactor = value)
-                .value(FreeCam.instance.getConfig().slowdownFactor)
+                .setter((_, value) -> update(config -> config.slowdownFactor = value))
+                .value(FreeCam.INSTANCE.getConfig().slowdownFactor)
                 .create());
 
         y += LINE_HEIGHT;
-        addRenderableWidget(CycleButton.onOffBuilder(FreeCam.instance.getConfig().renderHands)
-                .withTooltip(value -> Tooltip.create(HANDS_TOOLTIP))
-                .create(column1, y, BUTTON_WIDTH, BUTTON_HEIGHT, HANDS, (button, value) -> {
-                    FreeCam.instance.getConfig().renderHands = value;
-                }));
-        addRenderableWidget(CycleButton.onOffBuilder(FreeCam.instance.getConfig().target)
-                .withTooltip(value -> Tooltip.create(TARGET_TOOLTIP))
-                .create(column2, y, BUTTON_WIDTH, BUTTON_HEIGHT, TARGET, (button, value) -> {
-                    FreeCam.instance.getConfig().target = value;
-                }));
+        addRenderableWidget(CycleButton.onOffBuilder(FreeCam.INSTANCE.getConfig().renderHands)
+                .withTooltip(_ -> Tooltip.create(HANDS_TOOLTIP))
+                .create(column1, y, BUTTON_WIDTH, BUTTON_HEIGHT, HANDS, createListener((config, value) -> config.renderHands = value)));
+        addRenderableWidget(CycleButton.onOffBuilder(FreeCam.INSTANCE.getConfig().target)
+                .withTooltip(_ -> Tooltip.create(TARGET_TOOLTIP))
+                .create(column2, y, BUTTON_WIDTH, BUTTON_HEIGHT, TARGET, createListener((config, value) -> config.target = value)));
 
         y += LINE_HEIGHT;
-        addRenderableWidget(new CycleButton.Builder<Boolean>(b -> b ? FLY_MODE_SPECTATOR : FLY_MODE_DEFAULT, () -> FreeCam.instance.getConfig().spectatorMovement)
+        addRenderableWidget(new CycleButton.Builder<>(b -> b ? FLY_MODE_SPECTATOR : FLY_MODE_DEFAULT, () -> FreeCam.INSTANCE.getConfig().spectatorMovement)
                 .withValues(false, true)
-                .create(column1, y, BUTTON_WIDTH, BUTTON_HEIGHT, FLY_MODE, (button, value) -> {
-                    FreeCam.instance.getConfig().spectatorMovement = value;
-                }));
-        addRenderableWidget(CycleButton.onOffBuilder(FreeCam.instance.getConfig().rememberInputState)
-                .withTooltip(value -> Tooltip.create(INPUT_TOOLTIP))
-                .create(column2, y, BUTTON_WIDTH, BUTTON_HEIGHT, INPUT, (button, value) -> {
-                    FreeCam.instance.getConfig().rememberInputState = value;
-                }));
+                .create(column1, y, BUTTON_WIDTH, BUTTON_HEIGHT, FLY_MODE, createListener((config, value) -> config.spectatorMovement = value)));
+        addRenderableWidget(CycleButton.onOffBuilder(FreeCam.INSTANCE.getConfig().rememberInputState)
+                .withTooltip(_ -> Tooltip.create(INPUT_TOOLTIP))
+                .create(column2, y, BUTTON_WIDTH, BUTTON_HEIGHT, INPUT, createListener((config, value) -> config.rememberInputState = value)));
 
         y += LINE_HEIGHT;
-        addRenderableWidget(CycleButton.onOffBuilder(FreeCam.instance.getConfig().showMyName)
-                .withTooltip(value -> Tooltip.create(SHOW_MY_NAME_TOOLTIP))
-                .create(column1, y, BUTTON_WIDTH, BUTTON_HEIGHT, SHOW_MY_NAME, (button, value) -> {
-                    FreeCam.instance.getConfig().showMyName = value;
-                }));
+        addRenderableWidget(CycleButton.onOffBuilder(FreeCam.INSTANCE.getConfig().showMyName)
+                .withTooltip(_ -> Tooltip.create(SHOW_MY_NAME_TOOLTIP))
+                .create(column1, y, BUTTON_WIDTH, BUTTON_HEIGHT, SHOW_MY_NAME, createListener((config, value) -> config.showMyName = value)));
 
         y += 2 * LINE_HEIGHT;
-        addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> this.onClose())
+        addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, _ -> this.onClose())
                 .pos((width - DONE_BUTTON_WIDTH) / 2, y)
                 .size(DONE_BUTTON_WIDTH, BUTTON_HEIGHT)
                 .build());
@@ -165,8 +155,8 @@ public class FreeCamSettingsScreen extends Screen {
 
     @Override
     public void onClose() {
-        if (!originalConfig.equals(FreeCam.instance.getConfig())) {
-            ConfigRepository.instance.save(FreeCam.instance.getConfig());
+        if (changed) {
+            ConfigRepository.INSTANCE.save(FreeCam.INSTANCE.getConfig());
         }
 
         if (previous != null) {
@@ -174,5 +164,14 @@ public class FreeCamSettingsScreen extends Screen {
         } else {
             super.onClose();
         }
+    }
+
+    private CycleButton.OnValueChange<Boolean> createListener(BiConsumer<FreeCamConfig, Boolean> consumer) {
+        return (_, value) -> update(config -> consumer.accept(config, value));
+    }
+
+    private void update(Consumer<FreeCamConfig> consumer) {
+        consumer.accept(FreeCam.INSTANCE.getConfig());
+        changed = true;
     }
 }

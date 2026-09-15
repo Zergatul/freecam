@@ -27,7 +27,7 @@ public abstract class MixinCamera {
             at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;isPassenger()Z", ordinal = 0),
             cancellable = true)
     private void onAlignWithEntity(float partialTicks, CallbackInfo info) {
-        FreeCam freeCam = FreeCam.instance;
+        FreeCam freeCam = FreeCam.INSTANCE;
         if (freeCam.isActive()) {
             this.detached = true;
             setRotation(freeCam.getYRot(), freeCam.getXRot());
@@ -40,7 +40,7 @@ public abstract class MixinCamera {
             method = "extractRenderState",
             at = @At(value = "INVOKE", target = "Lnet/minecraft/client/player/LocalPlayer;isSpectator()Z"))
     private boolean onExtractRenderStateModifyIsSpectator(boolean isSpectator) {
-        if (FreeCam.instance.isActive()) {
+        if (FreeCam.INSTANCE.isActive()) {
             return true;
         } else {
             return isSpectator;
@@ -49,12 +49,12 @@ public abstract class MixinCamera {
 
     @ModifyExpressionValue(method = "calculateFov", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/Mth;lerp(FFF)F"))
     private float onModifyFovModifier(float original) {
-        return FreeCam.instance.isActive() ? 1.0f : original;
+        return FreeCam.INSTANCE.isActive() ? 1.0f : original;
     }
 
     @Inject(method = "modifyFovBasedOnDeathOrFluid", at = @At("HEAD"), cancellable = true)
     private void onModifyFovBasedOnDeathOrFluid(float partialTicks, float fov, CallbackInfoReturnable<Float> info) {
-        if (FreeCam.instance.isActive()) {
+        if (FreeCam.INSTANCE.isActive()) {
             info.setReturnValue(fov);
         }
     }

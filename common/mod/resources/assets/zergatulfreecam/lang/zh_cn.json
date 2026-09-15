@@ -4,7 +4,6 @@
   "key.zergatul.freecam.cameralock.toggle": "锁定当前视角",
   "key.zergatul.freecam.eyelock.toggle": "视角锁定人物", 
   "key.zergatul.freecam.followcam.toggle": "锁定当前视角并跟随人物",
-  "key.zergatul.freecam.start.path": "开始路径",
   "options.freecam.settings.title": "自由视角设置",
   "options.freecam.settings.acceleration": "加速度",
   "options.freecam.settings.acceleration.tooltip": "以米每秒平方为单位",

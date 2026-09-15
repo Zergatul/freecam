@@ -10,7 +10,7 @@ import java.io.*;
 
 public class ConfigRepository {
 
-    public static final ConfigRepository instance = new ConfigRepository();
+    public static final ConfigRepository INSTANCE = new ConfigRepository();
 
     private static final String FILE = "zergatul.freecam.json";
 
@@ -19,9 +19,7 @@ public class ConfigRepository {
             .setPrettyPrinting()
             .create();
 
-    private ConfigRepository() {
-
-    }
+    private ConfigRepository() {}
 
     public void save(FreeCamConfig config) {
         File file = getFile();
