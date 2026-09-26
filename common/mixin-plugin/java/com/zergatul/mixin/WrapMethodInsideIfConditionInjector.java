@@ -9,6 +9,7 @@ import org.spongepowered.asm.mixin.injection.struct.InjectionNodes;
 import org.spongepowered.asm.mixin.injection.struct.Target;
 import org.spongepowered.asm.mixin.injection.throwables.InvalidInjectionException;
 import org.spongepowered.asm.mixin.injection.throwables.InvalidInjectionPointException;
+import org.spongepowered.asm.util.Bytecode;
 
 import static org.objectweb.asm.Opcodes.*;
 
@@ -45,8 +46,7 @@ public class WrapMethodInsideIfConditionInjector extends Injector {
             }
 
             int[] argIndexes = new int[arguments.length];
-            int startIndex = target.getCurrentMaxLocals();
-            target.extendLocals().add(arguments).apply();
+            int startIndex = target.allocateLocals(Bytecode.getArgsSize(arguments));
             for (int i = 0; i < arguments.length; i++) {
                 argIndexes[i] = startIndex;
                 startIndex += arguments[i].getSize();
